@@ -18,6 +18,9 @@
     python api/report_api.py
 
     Reports:
+    
         -- curl -XGET 'http://127.0.0.1:5000/api/1.0/transactions_by_account'
+        
         -- curl -XGET 'http://127.0.0.1:5000/api/1.0/transactions_by_day'
+        
         -- curl -XGET 'http://127.0.0.1:5000/api/1.0/transactions_by_month'
