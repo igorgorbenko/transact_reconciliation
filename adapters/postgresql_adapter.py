@@ -211,7 +211,13 @@ class PostgreSQLAdapter(MyDatabasePostgresql):
             	t.transaction_amount
             from transaction_db_raw.transaction_log t
             join reconcil_data r
-            	on t.transaction_uid = r.transaction_uid;
+            	on t.transaction_uid = r.transaction_uid
+            where not exists
+                (
+                    select 1
+                    from transaction_db_clean.transaction_log tl
+                    where tl.transaction_uid = t.transaction_uid
+                )
             """.format(self.table_storage)
 
         try:

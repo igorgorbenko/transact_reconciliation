@@ -9,10 +9,14 @@ import threading
 from multiprocessing import Process
 from multiprocessing import Queue
 
+import configparser
 
-params = {"host":"172.17.0.2", "port":"5432",
-    "database":"rn0z", "user":"rn0z", "password":"1zx2"}
+config = configparser.ConfigParser()
+config.read('./conf/db.ini')
 
+# params = {"host":"172.17.0.2", "port":"5432",
+#     "database":"rn0z", "user":"rn0z", "password":"1zx2"}
+db_url = config.get('POSTGRESQL', 'db_url')
 
 class PostgreSQLMultiThread:
 
@@ -37,7 +41,7 @@ class PostgreSQLMultiThread:
 
         # creating separate connection for read and write purpose
         self._select_conn_pool \
-            = ThreadedConnectionPool(min_conn, max_conn, **params);
+            = ThreadedConnectionPool(min_conn, max_conn, db_url);
 
 
     def chunks(self, l, start, n):
@@ -126,7 +130,7 @@ class MyDatabasePostgresql():
 
     def __init__(self):
 
-        self.conn = psycopg2.connect(**params)
+        self.conn = psycopg2.connect(db_url)
         self.cur = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     def query(self, query):

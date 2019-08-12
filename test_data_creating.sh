@@ -6,7 +6,22 @@ if [ "$#" -ne 1 ]; then
     ROWS=10000
 fi
 
-POSTGRESQL_CONN=postgresql://rn0z:1zx2@172.17.0.2:5432/rn0z
+getValue()
+{
+    section="$1"
+    param="$2"
+    found=false
+    while read line
+    do
+        [[ $found == false && "$line" != "[$section]" ]] &&  continue
+        [[ $found == true && "${line:0:1}" = '[' ]] && break
+        found=true
+        [[ "${line%=*}" == "$param" ]] && { echo "${line#*=}"; break; }
+    done
+}
+
+POSTGRESQL_CONN=$(getValue POSTGRESQL db_url < conf/db.ini)
+
 
 psql $POSTGRESQL_CONN -a -f sql/schema_transaction.sql  >/dev/null 2>&1
 

@@ -4,14 +4,19 @@ import psycopg2
 import psycopg2.extras
 import flask
 import json
+import configparser
 
 app = flask.Flask(__name__)
 
-params = {"host":"172.17.0.2", "port":"5432",
-    "database":"rn0z", "user":"rn0z", "password":"1zx2"}
+
+config = configparser.ConfigParser()
+config.read('./conf/db.ini')
+
+db_url = config.get('POSTGRESQL', 'db_url')
+
 
 def db_conn():
-    return psycopg2.connect(**params)#'postgres://rn0z:1zx2@172.17.0.2:5432/rn0z')
+    return psycopg2.connect(db_url)
 
 
 def to_json(data):
