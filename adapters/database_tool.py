@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
 import time
+import threading
+from multiprocessing import Process
+from multiprocessing import Queue
+import configparser
 
 import psycopg2
 import psycopg2.extras
 from psycopg2.pool import ThreadedConnectionPool
 
-import threading
-from multiprocessing import Process
-from multiprocessing import Queue
-
-import configparser
 
 config = configparser.ConfigParser()
 config.read('./conf/db.ini')
 
-# params = {"host":"172.17.0.2", "port":"5432",
-#     "database":"rn0z", "user":"rn0z", "password":"1zx2"}
 db_url = config.get('POSTGRESQL', 'db_url')
+
 
 class PostgreSQLMultiThread:
 

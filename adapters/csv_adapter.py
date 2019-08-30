@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import multiprocessing as mp,os
 import time
+import multiprocessing as mp,os
 import hashlib
 
 from .database_tool import MyDatabasePostgresql

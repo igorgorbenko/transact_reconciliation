@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-
-import psycopg2
-import psycopg2.extras
-import flask
 import json
 import configparser
 
-app = flask.Flask(__name__)
+import flask
+import psycopg2
+import psycopg2.extras
 
+
+app = flask.Flask(__name__)
 
 config = configparser.ConfigParser()
 config.read('./conf/db.ini')

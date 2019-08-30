@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-import numpy as np
-
 import datetime
+import time
 import hashlib
+
 import psycopg2
 import psycopg2.extras
-import time
 
 from adapters.postgresql_adapter import PostgreSQLAdapter
 from adapters.csv_adapter import CsvAdapter
