@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
-import numpy as np
-
 import datetime
+import time
 import hashlib
+
 import psycopg2
 import psycopg2.extras
-import time
 
 from adapters.postgresql_adapter import PostgreSQLAdapter
 from adapters.csv_adapter import CsvAdapter
+
+from utils.monitoring import Monitoring as m
+
 
 class Reconciliator:
     def __init__(self):
@@ -22,7 +24,6 @@ class Reconciliator:
         self.psa.storage_create()
 
     def postgresql_adapter_run(self):
-        # self.psa.adapter_run()
         self.psa.adapter_run_main()
 
     def csv_adapter_run(self):
@@ -36,19 +37,19 @@ class Reconciliator:
         self.psa.save_clean_data()
         self.psa.drop_storage()
 
+    def start_all(self):
+        self.storage_preparing()
+        self.postgresql_adapter_run()
+        self.csv_adapter_run()
+        self.get_report()
+        self.reconcillation_run()
 
+
+@m.timing
 def main():
-    _start = time.time()
-
     recon = Reconciliator()
-    recon.storage_preparing()
-    recon.postgresql_adapter_run()
-    recon.csv_adapter_run()
-    recon.get_report()
-    recon.reconcillation_run()
-
-    operation_took = round(time.time() - _start, 2)
-    print('---> Total Processing time {0} seconds'.format(operation_took))
+    recon.start_all()
+    return {'log_txt': '---> Processing has been completed'}
 
 if __name__ == "__main__":
     main()

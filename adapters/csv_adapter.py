@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-import multiprocessing as mp,os
 import time
+import multiprocessing as mp,os
 import hashlib
 
-from .database_tool import MyDatabasePostgresql
+from .database_tool import PostgreSQLCommon
+from utils.monitoring import Monitoring as m
 
-class CsvAdapter(MyDatabasePostgresql):
+
+class CsvAdapter:
     def __init__(self, table_storage, file_name):
         self.file_name = file_name
         self.table_storage = "reconciliation_db." + table_storage
@@ -56,7 +58,7 @@ class CsvAdapter(MyDatabasePostgresql):
                 if chunkEnd > fileEnd:
                     break
 
-
+    @m.timing
     def run_reading(self):
         #init objects
         pool = mp.Pool(4)
@@ -66,7 +68,6 @@ class CsvAdapter(MyDatabasePostgresql):
         for chunkStart,chunkSize in self.chunkify():
             jobs.append(pool.apply_async(self.process_wrapper,(chunkStart,chunkSize)))
 
-        start_time = time.time()
         #wait for all jobs to finish
         for job in jobs:
             job.get()
@@ -74,27 +75,26 @@ class CsvAdapter(MyDatabasePostgresql):
         #clean up
         pool.close()
 
-        operation_took = round(time.time() - start_time, 2)
-        print("---> CsvAdapter.run_reading took", operation_took, "seconds")
+        return {'log_txt' : "---> CsvAdapter.run_reading has been completed"}
 
-
+    @m.timing
     def bulk_coly_to_db(self):
-        db = MyDatabasePostgresql()
+        db = PostgreSQLCommon()
 
         try:
-            start_time = time.time()
-
             f = open(self.file_name_hash)
             db.bulk_copy(f, self.table_storage)
 
-            operation_took = round(time.time() - start_time, 2)
-            print("---> Bulk insert from", self.file_name_hash, " successfully completed!",
-                "Operation took", operation_took, "seconds")
+            message_txt = "---> Bulk insert from" + \
+                          self.file_name_hash + \
+                          "successfully completed!"
 
             if os.path.exists("data/transaction_hashed.csv"):
                 os.remove("data/transaction_hashed.csv")
 
         except Exception as e:
-            print("---> OOps! Bulk insert operation FAILED! Reason: ", str(e))
+            message_txt = "---> OOps! Bulk insert operation FAILED! Reason: ", str(e)
         finally:
             db.close()
+
+        return {'log_txt': message_txt}

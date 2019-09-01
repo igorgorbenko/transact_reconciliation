@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 import time
 
-from .database_tool import MyDatabasePostgresql, PostgreSQLMultiThread
+from .database_tool import PostgreSQLCommon, PostgreSQLMultiThread
+from utils.monitoring import Monitoring as m
 
 
-class PostgreSQLAdapter(MyDatabasePostgresql):
+class PostgreSQLAdapter:
     def __init__(self, table_storage):
         self.table_storage = table_storage
 
     def storage_create(self):
-        db = MyDatabasePostgresql()
+        db = PostgreSQLCommon()
         strSQL = """
             drop table if exists reconciliation_db.{0};
             create table reconciliation_db.{0} (
@@ -30,7 +31,7 @@ class PostgreSQLAdapter(MyDatabasePostgresql):
             db.close()
 
     def drop_storage(self):
-        db = MyDatabasePostgresql()
+        db = PostgreSQLCommon()
         strSQL = """
             drop table if exists reconciliation_db.{0};""".format(self.table_storage)
 
@@ -44,8 +45,8 @@ class PostgreSQLAdapter(MyDatabasePostgresql):
             db.close()
 
 
-    def adapter_run(self):
-        db = MyDatabasePostgresql()
+    def adapter_simple_run(self):
+        db = PostgreSQLCommon()
 
         strSQL = """
             with pre_select as (
@@ -68,23 +69,21 @@ class PostgreSQLAdapter(MyDatabasePostgresql):
             from pre_select s;""".format(self.table_storage)
 
         try:
-            start_time = time.time()
             db.execute(strSQL)
-            operation_took = round(time.time() - start_time, 2)
 
-            print("---> PostgreSQLAdapter.adapter_run successfully completed!",
-                "Operation took", operation_took, "seconds")
+            message_txt = "---> PostgreSQLAdapter.adapter_run successfully completed"
         except Exception as e:
-            print("---> OOps! PostgreSQLAdapter.adapter_run FAILED! Reason: ", str(e))
+            message_txt = "---> OOps! PostgreSQLAdapter.adapter_run FAILED! Reason: ", str(e)
             print(strSQL)
         finally:
             db.close()
 
+        return {'log_txt': message_txt}
+
 
     def getRowCounts(self):
         rows_count = 0
-
-        db = MyDatabasePostgresql()
+        db = PostgreSQLCommon()
 
         strSQL = """
             select count(*)
@@ -102,58 +101,59 @@ class PostgreSQLAdapter(MyDatabasePostgresql):
         return rows_count
 
 
+    def adapter_thread_run(self):
+        strSQL = """
+            with pre_select as (
+                select
+                    transaction_uid,
+                    'postresql_adapter' as adapter_name,
+                    md5(
+                        coalesce(md5(account_uid::text), ' ') ||
+                        coalesce(md5(to_char(transaction_date,
+                            'YYYY-MM-DD HH24:MI:SS')), ' ') ||
+                        coalesce(md5(type_deal::text), ' ') ||
+                        coalesce(md5(transaction_amount::text), ' ')) as hash
+                from transaction_db_raw.transaction_log
+                where id_num_row > %s and id_num_row <= %s
+            )
+            insert into reconciliation_db.{0}
+                (adapter_name, transaction_uid, hash)
+            select
+                s.adapter_name,
+                s.transaction_uid,
+                s.hash::uuid
+            from pre_select s;""".format(self.table_storage)
+
+        print("---> Run multiprocessing read...")
+        multi_run = PostgreSQLMultiThread(strSQL, self.rows_count)
+
+        #Creating database connection pool to help connection shared along process
+        multi_run.create_connection_pool()
+        multi_run.read_data()
+
+        message_txt = "---> PostgreSQLAdapter.PostgreSQLMultiThread.read_data " + \
+                      "successfully completed"
+
+        return {'log_txt': message_txt}
+
+
+    @m.timing
     def adapter_run_main(self):
-        rows_count = self.getRowCounts()
+        self.rows_count = self.getRowCounts()
 
         #  Not to large
-        if rows_count < 100000:
+        if self.rows_count < 100000:
             # Simple processing
-            self.adapter_run()
+            result = self.adapter_simple_run()
         else:
-            strSQL = """
-                with pre_select as (
-                	select
-                		transaction_uid,
-                		'postresql_adapter' as adapter_name,
-                		md5(
-                			coalesce(md5(account_uid::text), ' ') ||
-                			coalesce(md5(to_char(transaction_date,
-                				'YYYY-MM-DD HH24:MI:SS')), ' ') ||
-                			coalesce(md5(type_deal::text), ' ') ||
-                			coalesce(md5(transaction_amount::text), ' ')) as hash
-                	from transaction_db_raw.transaction_log
-                	where id_num_row > %s and id_num_row <= %s
-                )
-                insert into reconciliation_db.{0}
-                	(adapter_name, transaction_uid, hash)
-                select
-                	s.adapter_name,
-                	s.transaction_uid,
-                	s.hash::uuid
-                from pre_select s;""".format(self.table_storage)
+            result = self.adapter_thread_run()
 
-            start_time = time.time()
-
-            print("---> Run multiprocessing read...")
-            multi_run = PostgreSQLMultiThread(strSQL, rows_count)
-
-        # try:
-            #Creating database connection pool to help connection shared along process
-            multi_run.create_connection_pool()
-            multi_run.read_data()
-
-            operation_took = round(time.time() - start_time, 2)
-            print("---> PostgreSQLAdapter.PostgreSQLMultiThread.read_data",
-                "successfully completed! Operation took", operation_took, "seconds")
-
-        # except Exception as e:
-        #     print("---> OOps! PostgreSQLAdapter.PostgreSQLMultiThread.read_data",
-        #         "FAILED! Reason: ", str(e))
-        #     print(strSQL)
+        return result
 
 
+    @m.timing
     def get_discrepancy_report(self):
-        db = MyDatabasePostgresql()
+        db = PostgreSQLCommon()
 
         strSQL = """
             select
@@ -168,12 +168,9 @@ class PostgreSQLAdapter(MyDatabasePostgresql):
             group by s1.adapter_name;""".format(self.table_storage)
 
         try:
-            start_time = time.time()
             rows = db.query(strSQL).fetchall()
-            operation_took = round(time.time() - start_time, 2)
 
-            print("---> PostgreSQLAdapter.get_discrepancy_report successfully completed!",
-                "Operation took", operation_took, "seconds")
+            message_txt = "---> PostgreSQLAdapter.get_discrepancy_report successfully completed"
 
             print("\nNumber of discrepancies detected by adapters")
             print('---------------------------------')
@@ -182,14 +179,18 @@ class PostgreSQLAdapter(MyDatabasePostgresql):
             print('---------------------------------')
 
         except Exception as e:
-            print("---> OOps! PostgreSQLAdapter.get_discrepancy_report FAILED! Reason: ", str(e))
+            message_txt = "---> OOps! PostgreSQLAdapter.get_discrepancy_report FAILED! " + \
+                          "Reason:" + str(e)
             print(strSQL)
         finally:
             db.close()
 
+        return {"log_txt": message_txt}
 
+
+    @m.timing
     def save_clean_data(self):
-        db = MyDatabasePostgresql()
+        db = PostgreSQLCommon()
 
         strSQL = """
             with reconcil_data as (
@@ -221,14 +222,14 @@ class PostgreSQLAdapter(MyDatabasePostgresql):
             """.format(self.table_storage)
 
         try:
-            start_time = time.time()
             db.execute(strSQL)
-            operation_took = round(time.time() - start_time, 2)
 
-            print("---> PostgreSQLAdapter.save_clean_data successfully completed!",
-                "Operation took", operation_took, "seconds")
+            message_txt = "---> PostgreSQLAdapter.save_clean_data successfully completed"
         except Exception as e:
-            print("---> OOps! PostgreSQLAdapter.save_clean_data FAILED! Reason: ", str(e))
+            message_txt = "---> OOps! PostgreSQLAdapter.save_clean_data FAILED! " + \
+                          "Reason: " + str(e)
             print(strSQL)
         finally:
             db.close()
+
+        return {"log_txt": message_txt}
