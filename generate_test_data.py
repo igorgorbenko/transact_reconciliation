@@ -43,10 +43,11 @@ class TestDataCreator:
 
     @m.timing
     def create_test_data(self):
+        result = {}
 
         data_file = open(self.data_file, "w")
         date_in = self.date_in
-        list_acc = self.get_accounts_num(10)     # Ten random accounts for the dummy data
+        list_acc = self.get_accounts_num(10)     # Ten random accounts
 
         for i in range(self.num_rows):
             transaction_uid  = uuid.uuid4()
@@ -63,7 +64,7 @@ class TestDataCreator:
                 transaction_amount))
 
         data_file.close()
-        print("Test data creating for {0} rows".format(self.num_rows))
+        return {"log_txt": "Test data creating for {0} rows".format(self.num_rows)}
 
 
 if __name__ == '__main__':

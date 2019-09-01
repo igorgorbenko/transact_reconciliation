@@ -11,7 +11,12 @@ class Monitoring:
             start = time()
             result = f(*args, **kwargs)
             end = time()
-            print('func: {}. Elapsed time: {} sec'.format(f.__name__, end - start))
+            time_elapsed = round(end - start, 4)
+
+            if result["log_txt"]:
+                print("{}. Elapsed time: {} sec".format(result["log_txt"], time_elapsed))
+            else:
+                print("func: {}. Elapsed time: {} sec".format(f.__name__, time_elapsed))
             return result
         return wrapper
 
