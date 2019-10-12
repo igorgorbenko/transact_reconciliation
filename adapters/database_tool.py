@@ -8,7 +8,8 @@ from multiprocessing import Queue
 import configparser
 
 import psycopg2
-import psycopg2.extras
+from psycopg2.extras import DictCursor
+import psycopg2.sql as sql
 from psycopg2.pool import ThreadedConnectionPool
 
 from utils.monitoring import Monitoring as m
@@ -136,35 +137,43 @@ class PostgreSQLMultiThread:
               "end_index", end_index)
 
 
-class PostgreSQLCommon(): # MyDatabasePostgresql
+class PostgreSQLCommon():
     """ Simple working with database """
     def __init__(self):
         self.conn = psycopg2.connect(db_url)
-        self.cur = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    def query(self, query):
-        """ Query executing """
-        self.cur.execute(query)
-        return self.cur
+    def query(self, query, **kwargs):
+        """ Query executing for many records """
+        with self.conn.cursor(cursor_factory=DictCursor) as cur:
+            cur.execute(query, kwargs)
+            return cur.fetchall()
 
-    def execute(self, query):
+    def query_one(self, query, **kwargs):
+        """ Query executing for one record """
+        with self.conn.cursor(cursor_factory=DictCursor) as cur:
+            cur.execute(query, kwargs)
+            return cur.fetchone()
+
+    def execute(self, query, **kwargs):
         """ DML with transaction """
-        self.cur.execute(query)
-        self.conn.commit()
+        with self.conn.cursor(cursor_factory=DictCursor) as cur:
+            cur.execute(query, kwargs)
+            self.conn.commit()
+            cur.close()
+#
+# cur.execute(
+#     sql.SQL("insert into %s values (%%s)") % [sql.Identifier("my_table")],
+#     [42])
+
 
     def bulk_copy(self, file_source, target_table):
         """ Massive insertion """
-        self.cur.copy_from(file_source, target_table, sep="\t")
-        self.conn.commit()
-        self.conn.close()
-
-    def write(self, table, columns, data):
-        """ Inserting the data """
-        query = "insert into {0} ({1}) values ({2});".format(table, columns, data)
-        self.cur.execute(query)
+        with self.conn.cursor(cursor_factory=DictCursor) as cur:
+            cur.copy_from(file_source, target_table, sep="\t")
+            self.conn.commit()
+            cur.close()
 
     def close(self):
-        """ Cursor closing """
-        self.cur.close()
-        self.conn.close()
-        #print("PostgreSQL connection is closed")
+        """ Connection closing """
+        if self.conn:
+            self.conn.close()

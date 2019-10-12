@@ -7,7 +7,7 @@ import multiprocessing as mp
 import hashlib
 
 from utils.monitoring import Monitoring as m
-from database_tool import PostgreSQLCommon
+from adapters.database_tool import PostgreSQLCommon
 
 
 class CsvAdapter:

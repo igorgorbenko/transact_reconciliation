@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-import time
+""" Postgres stuff """
 
-from .database_tool import PostgreSQLCommon, PostgreSQLMultiThread
+from adapters.database_tool import PostgreSQLCommon, PostgreSQLMultiThread
 from utils.monitoring import Monitoring as m
 
 
 class PostgreSQLAdapter:
+    """ The adapter for PostgreSQL """
     def __init__(self, table_storage):
         self.table_storage = table_storage
+        self.rows_count = 0
+        self.database = PostgreSQLCommon()
 
     def storage_create(self):
-        db = PostgreSQLCommon()
-        strSQL = """
+        """ Create a table for the comparing the sources """
+        sql_command = """
             drop table if exists reconciliation_db.{0};
             create table reconciliation_db.{0} (
                 adapter_name        varchar(50) not null,
@@ -23,32 +26,32 @@ class PostgreSQLAdapter:
             """.format(self.table_storage)
 
         try:
-            db.execute(strSQL)
+            self.database.execute(sql_command)
             print("---> Table", self.table_storage, "has been created!")
         except Exception as e:
             print("---> OOps! Table creating for Storage FAILED! Reason: ", str(e))
-        finally:
-            db.close()
+
 
     def drop_storage(self):
+        """ Drop a staging table """
         db = PostgreSQLCommon()
-        strSQL = """
+        sql_command = """
             drop table if exists reconciliation_db.{0};""".format(self.table_storage)
 
         try:
-            db.execute(strSQL)
+            db.execute(sql_command)
             print("---> Table", self.table_storage, "has been droped!")
         except Exception as e:
             print("---> OOps! Table droping for Storage",
-                self.table_storage, "FAILED! Reason: ", str(e))
+                  self.table_storage, "FAILED! Reason: ", str(e))
         finally:
             db.close()
 
-
     def adapter_simple_run(self):
+        """ Insert hashed data from PostgreSQL """
         db = PostgreSQLCommon()
 
-        strSQL = """
+        sql_command = """
             with pre_select as (
             	select
             		transaction_uid,
@@ -69,32 +72,34 @@ class PostgreSQLAdapter:
             from pre_select s;""".format(self.table_storage)
 
         try:
-            db.execute(strSQL)
+            db.execute(sql_command)
 
             message_txt = "---> PostgreSQLAdapter.adapter_run successfully completed"
         except Exception as e:
             message_txt = "---> OOps! PostgreSQLAdapter.adapter_run FAILED! Reason: ", str(e)
-            print(strSQL)
+            print(sql_command)
         finally:
             db.close()
 
         return {'log_txt': message_txt}
 
-
-    def getRowCounts(self):
+    @staticmethod
+    def get_rows_count():
+        """ Return a count of rows """
         rows_count = 0
         db = PostgreSQLCommon()
 
-        strSQL = """
+        sql_command = """
             select count(*)
             from transaction_db_raw.transaction_log;"""
 
         try:
-            rows = db.query(strSQL).fetchone()
+            rows = db.query_one(sql_command)
             rows_count = rows[0]
+            print("rows_count", rows_count, "rows", rows)
         except Exception as e:
-            print("---> OOps! PostgreSQLAdapter.getRowCounts FAILED! Reason: ", str(e))
-            print(strSQL)
+            print("---> OOps! PostgreSQLAdapter.get_rows_count FAILED! Reason: ", str(e))
+            print(sql_command)
         finally:
             db.close()
 
@@ -102,7 +107,7 @@ class PostgreSQLAdapter:
 
 
     def adapter_thread_run(self):
-        strSQL = """
+        sql_command = """
             with pre_select as (
                 select
                     transaction_uid,
@@ -125,7 +130,7 @@ class PostgreSQLAdapter:
             from pre_select s;""".format(self.table_storage)
 
         print("---> Run multiprocessing read...")
-        multi_run = PostgreSQLMultiThread(strSQL, self.rows_count)
+        multi_run = PostgreSQLMultiThread(sql_command, self.rows_count)
 
         #Creating database connection pool to help connection shared along process
         multi_run.create_connection_pool()
@@ -139,9 +144,9 @@ class PostgreSQLAdapter:
 
     @m.timing
     def adapter_run_main(self):
-        self.rows_count = self.getRowCounts()
-
-        #  Not to large
+        """ Depending on the volume of input data,
+            the necessary handler is launched """
+        self.rows_count = self.get_rows_count()
         if self.rows_count < 100000:
             # Simple processing
             result = self.adapter_simple_run()
@@ -155,7 +160,7 @@ class PostgreSQLAdapter:
     def get_discrepancy_report(self):
         db = PostgreSQLCommon()
 
-        strSQL = """
+        sql_command = """
             select
             	s1.adapter_name,
             	count(s1.transaction_uid) as tran_count
@@ -168,7 +173,7 @@ class PostgreSQLAdapter:
             group by s1.adapter_name;""".format(self.table_storage)
 
         try:
-            rows = db.query(strSQL).fetchall()
+            rows = db.query(sql_command)
 
             message_txt = "---> PostgreSQLAdapter.get_discrepancy_report successfully completed"
 
@@ -181,7 +186,7 @@ class PostgreSQLAdapter:
         except Exception as e:
             message_txt = "---> OOps! PostgreSQLAdapter.get_discrepancy_report FAILED! " + \
                           "Reason:" + str(e)
-            print(strSQL)
+            print(sql_command)
         finally:
             db.close()
 
@@ -192,7 +197,7 @@ class PostgreSQLAdapter:
     def save_clean_data(self):
         db = PostgreSQLCommon()
 
-        strSQL = """
+        sql_command = """
             with reconcil_data as (
             	select
             		s1.transaction_uid
@@ -222,13 +227,13 @@ class PostgreSQLAdapter:
             """.format(self.table_storage)
 
         try:
-            db.execute(strSQL)
+            db.execute(sql_command)
 
             message_txt = "---> PostgreSQLAdapter.save_clean_data successfully completed"
         except Exception as e:
             message_txt = "---> OOps! PostgreSQLAdapter.save_clean_data FAILED! " + \
                           "Reason: " + str(e)
-            print(strSQL)
+            print(sql_command)
         finally:
             db.close()
 
