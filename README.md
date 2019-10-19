@@ -4,7 +4,7 @@
     own DB server and etc.)
     for example:
 
-        -- docker run --name pg -d -e POSTGRES_USER=rn0z -e POSTGRES_PASSWORD=1zx2 postgres
+        -- docker run --name pg -d -e POSTGRES_USER=my_user -e POSTGRES_PASSWORD=my_password postgres
         -- docker run -p 80:80 -e "PGADMIN_DEFAULT_EMAIL=user@domain.com" -e "PGADMIN_DEFAULT_PASSWORD=12345" -d dpage/pgadmin4
 
 2. Put the database url in config file conf/db.ini

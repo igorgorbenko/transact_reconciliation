@@ -76,7 +76,6 @@ class PostgreSQLMultiThread:
         threads_array = self.get_threads(0,
                                          self.total_records,
                                          10)
-
         for pid in range(1, 11):
             # Getting connection from the connection pool
             select_conn = self._select_conn_pool.getconn()
@@ -94,7 +93,7 @@ class PostgreSQLMultiThread:
             process.start()
             process.join()
 
-            return {"log_txt": "Process {}".format(pid)}
+        return {"log_txt": "Process {}".format(pid)}
 
 
     def process_data(self, queue, pid,

@@ -32,7 +32,7 @@ class PostgreSQLAdapter:
             create index {3} on {0}.{1} (hash);
             """).format(sql.Identifier(self.schema_target),
                         sql.Identifier(self.table_storage),
-                        sql.Identifier('_'.join(['pk_storage', self.table_storage])),
+                        sql.Identifier('_'.join(['pk', self.table_storage])),
                         sql.Identifier('_'.join([self.table_storage, 'hash_idx'])))
         try:
             self.database.execute(sql_command)
@@ -136,8 +136,8 @@ class PostgreSQLAdapter:
         multi_run.create_connection_pool()
         multi_run.read_data()
 
-        message_txt = ("---> PostgreSQLAdapter.PostgreSQLMultiThread.read_data ",
-                       "successfully completed")
+        message_txt = """---> PostgreSQLAdapter.PostgreSQLMultiThread.read_data
+                       successfully completed"""
 
         return {'log_txt': message_txt}
 
