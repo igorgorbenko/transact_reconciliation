@@ -15,7 +15,9 @@ class Reconciliator:
     def __init__(self):
         # Unique table name for the parallel processing
         self.storage_table = "storage_" + str(int(time.time()))
-        self.psa = PostgreSQLAdapter(self.storage_table)
+        self.psa = PostgreSQLAdapter(self.storage_table,
+                                     'transaction_db_raw',
+                                     'reconciliation_db')
         self.csv = CsvAdapter(self.storage_table, "data/transaction_data.csv")
 
     def storage_preparing(self):

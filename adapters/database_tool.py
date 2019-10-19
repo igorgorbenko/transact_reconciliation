@@ -156,15 +156,11 @@ class PostgreSQLCommon():
 
     def execute(self, query, **kwargs):
         """ DML with transaction """
+        #print(sql.SQL(query.as_string(self.conn)))
         with self.conn.cursor(cursor_factory=DictCursor) as cur:
             cur.execute(query, kwargs)
             self.conn.commit()
             cur.close()
-#
-# cur.execute(
-#     sql.SQL("insert into %s values (%%s)") % [sql.Identifier("my_table")],
-#     [42])
-
 
     def bulk_copy(self, file_source, target_table):
         """ Massive insertion """
