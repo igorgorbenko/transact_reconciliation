@@ -9,7 +9,6 @@ import configparser
 
 import psycopg2
 from psycopg2.extras import DictCursor
-import psycopg2.sql as sql
 from psycopg2.pool import ThreadedConnectionPool
 
 from utils.monitoring import Monitoring as m
@@ -18,7 +17,7 @@ from utils.monitoring import Monitoring as m
 config = configparser.ConfigParser()
 config.read('./conf/db.ini')
 
-db_url = config.get('POSTGRESQL', 'db_url')
+DB_URL = config.get('POSTGRESQL', 'db_url')
 
 
 class PostgreSQLMultiThread:
@@ -29,7 +28,6 @@ class PostgreSQLMultiThread:
     data_queque = Queue()  # reader reads data from queue
 
     def __init__(self, str_sql, total_records):
-        # self = self;
         self.str_sql = str_sql
         self.total_records = total_records
 
@@ -43,7 +41,7 @@ class PostgreSQLMultiThread:
         # creating separate connection for read and write purpose
         self._select_conn_pool = ThreadedConnectionPool(min_conn,
                                                         max_conn,
-                                                        db_url)
+                                                        DB_URL)
 
     @staticmethod
     def chunks(array, start, num):
@@ -139,7 +137,7 @@ class PostgreSQLMultiThread:
 class PostgreSQLCommon():
     """ Simple working with database """
     def __init__(self):
-        self.conn = psycopg2.connect(db_url)
+        self.conn = psycopg2.connect(DB_URL)
 
     def query(self, query, **kwargs):
         """ Query executing for many records """
@@ -155,7 +153,6 @@ class PostgreSQLCommon():
 
     def execute(self, query, **kwargs):
         """ DML with transaction """
-        #print(sql.SQL(query.as_string(self.conn)))
         with self.conn.cursor(cursor_factory=DictCursor) as cur:
             cur.execute(query, kwargs)
             self.conn.commit()

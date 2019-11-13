@@ -29,12 +29,10 @@ class CsvAdapter:
         """ Return the output hash-row """
         output_str = 'csv_adapter\t' + \
                         arr[0] + '\t' + \
-                        self.md5(
-                            self.md5(arr[1]) + \
-                            self.md5(arr[2]) + \
-                            self.md5(arr[3]) + \
-                            self.md5(arr[4])
-                            )
+                        self.md5(self.md5(arr[1]) +
+                                 self.md5(arr[2]) +
+                                 self.md5(arr[3]) +
+                                 self.md5(arr[4]))
         return output_str
 
     def process(self, line):
