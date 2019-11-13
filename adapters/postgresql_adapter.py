@@ -36,9 +36,9 @@ class PostgreSQLAdapter:
                         sql.Identifier('_'.join([self.table_storage, 'hash_idx'])))
         try:
             self.database.execute(sql_command)
-            print("---> Table", self.table_storage, "has been created!")
+            print('---> Table', self.table_storage, 'has been created!')
         except psycopg2.Error as err:
-            print("---> OOps! Table creating for Storage FAILED! Reason: ", str(err))
+            print('---> OOps! Table creating for Storage FAILED! Reason: ', str(err))
 
 
     def drop_storage(self):
@@ -49,10 +49,10 @@ class PostgreSQLAdapter:
                         sql.Identifier(self.table_storage))
         try:
             self.database.execute(sql_command)
-            print("---> Table", self.table_storage, "has been droped!")
+            print('---> Table', self.table_storage, 'has been droped!')
         except psycopg2.Error as err:
-            print("---> OOps! Table droping for Storage",
-                  self.table_storage, "FAILED! Reason: ", str(err))
+            print('---> OOps! Table droping for Storage',
+                  self.table_storage, 'FAILED! Reason: ', str(err))
 
     def adapter_simple_run(self):
         """ Insert hashed data from PostgreSQL """
@@ -79,9 +79,9 @@ class PostgreSQLAdapter:
 
         try:
             self.database.execute(sql_command)
-            message_txt = "---> PostgreSQLAdapter.adapter_run successfully completed"
+            message_txt = '---> PostgreSQLAdapter.adapter_run successfully completed'
         except psycopg2.Error as err:
-            message_txt = "---> OOps! PostgreSQLAdapter.adapter_run FAILED! Reason: ", str(err)
+            message_txt = '---> OOps! PostgreSQLAdapter.adapter_run FAILED! Reason: ', str(err)
 
         return {'log_txt': message_txt}
 
@@ -96,9 +96,9 @@ class PostgreSQLAdapter:
         try:
             rows = self.database.query_one(sql_command)
             rows_count = rows[0]
-            print("rows_count", rows_count, "rows", rows)
+            print('rows_count', rows_count, 'rows', rows)
         except psycopg2.Error as err:
-            print("---> OOps! PostgreSQLAdapter.get_rows_count FAILED! Reason: ", str(err))
+            print('---> OOps! PostgreSQLAdapter.get_rows_count FAILED! Reason: ', str(err))
             print(sql_command)
 
         return rows_count
@@ -129,7 +129,7 @@ class PostgreSQLAdapter:
             from pre_select s;""").format(sql.Identifier(self.schema_target),
                                           sql.Identifier(self.table_storage))
 
-        print("---> Run multiprocessing read...")
+        print('---> Run multiprocessing read...')
         multi_run = PostgreSQLMultiThread(sql_command, self.rows_count)
 
         #Creating database connection pool to help connection shared along process
@@ -176,19 +176,19 @@ class PostgreSQLAdapter:
         try:
             rows = self.database.query(sql_command)
 
-            message_txt = "---> PostgreSQLAdapter.get_discrepancy_report successfully completed"
+            message_txt = '---> PostgreSQLAdapter.get_discrepancy_report successfully completed'
 
-            print("\nNumber of discrepancies detected by adapters")
+            print('\nNumber of discrepancies detected by adapters')
             print('---------------------------------')
             for row in rows:
                 print(row)
             print('---------------------------------')
 
         except psycopg2.Error as err:
-            message_txt = ("---> OOps! PostgreSQLAdapter.get_discrepancy_report FAILED!",
-                           "Reason:" + str(err))
+            message_txt = ('---> OOps! PostgreSQLAdapter.get_discrepancy_report FAILED!',
+                           'Reason:' + str(err))
 
-        return {"log_txt": message_txt}
+        return {'log_txt': message_txt}
 
 
     @m.timing
@@ -227,10 +227,10 @@ class PostgreSQLAdapter:
         try:
             self.database.execute(sql_command)
 
-            message_txt = "---> PostgreSQLAdapter.save_clean_data successfully completed"
+            message_txt = '---> PostgreSQLAdapter.save_clean_data successfully completed'
         except psycopg2.Error as err:
-            message_txt = ("---> OOps! PostgreSQLAdapter.save_clean_data FAILED!",
-                           "Reason: " + str(err))
+            message_txt = ('---> OOps! PostgreSQLAdapter.save_clean_data FAILED!',
+                           'Reason: ' + str(err))
             print(sql_command)
 
-        return {"log_txt": message_txt}
+        return {'log_txt': message_txt}

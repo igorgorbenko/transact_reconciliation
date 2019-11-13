@@ -93,7 +93,7 @@ class PostgreSQLMultiThread:
             process.start()
             process.join()
 
-        return {"log_txt": "Process {}".format(pid)}
+        return {'log_txt': 'Process {}'.format(pid)}
 
 
     def process_data(self, queue, pid,
@@ -102,7 +102,7 @@ class PostgreSQLMultiThread:
         """
         Here we process the each process into 10 multiple threads to do data process
         """
-        print("\nStarted processing record from %s to %s" % (start_index, end_index))
+        print('\nStarted processing record from %s to %s' % (start_index, end_index))
         threads_array = self.get_threads(start_index,
                                          end_index,
                                          10)
@@ -130,10 +130,10 @@ class PostgreSQLMultiThread:
         """
         sel_cur.execute(self.str_sql, (int(start_index), int(end_index)))
 
-        print("\t", "pid", pid,
-              "tid", tid,
-              "start_index", start_index,
-              "end_index", end_index)
+        print('\t', 'pid', pid,
+              'tid', tid,
+              'start_index', start_index,
+              'end_index', end_index)
 
 
 class PostgreSQLCommon():

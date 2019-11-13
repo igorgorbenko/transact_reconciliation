@@ -14,8 +14,8 @@ class CsvAdapter:
     """ Class for the reading of CSV """
     def __init__(self, table_storage, file_name):
         self.file_name = file_name
-        self.table_storage = "reconciliation_db." + table_storage
-        self.file_name_hash = "data/transaction_hashed.csv"
+        self.table_storage = 'reconciliation_db.' + table_storage
+        self.file_name_hash = 'data/transaction_hashed.csv'
 
     @staticmethod
     def md5(input_string):
@@ -39,7 +39,7 @@ class CsvAdapter:
         arr_line = list(line.split('\t'))
         hash_line = self.get_hash(arr_line)
 
-        with open(self.file_name_hash, "a") as hash_txt:
+        with open(self.file_name_hash, 'a') as hash_txt:
             hash_txt.write(hash_line + '\n')
 
     def process_wrapper(self, chunk_start, chunk_size):
@@ -82,7 +82,7 @@ class CsvAdapter:
 
         #clean up
         pool.close()
-        return {'log_txt' : "---> CsvAdapter.run_reading has been completed"}
+        return {'log_txt' : '---> CsvAdapter.run_reading has been completed'}
 
     @m.timing
     def bulk_coly_to_db(self):
@@ -93,15 +93,15 @@ class CsvAdapter:
             file = open(self.file_name_hash)
             database.bulk_copy(file, self.table_storage)
 
-            message_txt = "---> Bulk insert from" + \
+            message_txt = '---> Bulk insert from' + \
                           self.file_name_hash + \
-                          "successfully completed!"
+                          'successfully completed!'
 
-            if os.path.exists("data/transaction_hashed.csv"):
-                os.remove("data/transaction_hashed.csv")
+            if os.path.exists('data/transaction_hashed.csv'):
+                os.remove('data/transaction_hashed.csv')
 
         except Exception as err:
-            message_txt = "---> OOps! Bulk insert operation FAILED! Reason: ", str(err)
+            message_txt = '---> OOps! Bulk insert operation FAILED! Reason: ', str(err)
         finally:
             database.close()
 

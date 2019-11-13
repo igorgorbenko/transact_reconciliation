@@ -14,11 +14,11 @@ class Reconciliator:
     """ Reconciliation executor """
     def __init__(self):
         # Unique table name for the parallel processing
-        self.storage_table = "storage_" + str(int(time.time()))
+        self.storage_table = 'storage_' + str(int(time.time()))
         self.psa = PostgreSQLAdapter(self.storage_table,
                                      'transaction_db_raw',
                                      'reconciliation_db')
-        self.csv = CsvAdapter(self.storage_table, "data/transaction_data.csv")
+        self.csv = CsvAdapter(self.storage_table, 'data/transaction_data.csv')
 
     def storage_preparing(self):
         """ Database preparing """
@@ -57,5 +57,5 @@ def main():
     recon.start_all()
     return {'log_txt': '---> Processing has been completed'}
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

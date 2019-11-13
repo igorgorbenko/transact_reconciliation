@@ -11,7 +11,7 @@ import datetime
 
 from utils.monitoring import Monitoring as m
 
-FILE_NAME = "data/transaction_data.csv"
+FILE_NAME = 'data/transaction_data.csv'
 INITIAL_DATE = datetime.datetime(2015, 1, 1, 12, 00)
 RANDOM_ACCOUNTS = 10
 LIST_TYPE_DEAL = ['commision', 'deal']
@@ -50,18 +50,18 @@ class TestDataCreator:
     @m.timing
     def create_test_data(self):
         """ Generating and saving to the file """
-        data_file = open(self.data_file, "w")
+        data_file = open(self.data_file, 'w')
         date_in = self.date_in
         list_acc = self.get_accounts_num(RANDOM_ACCOUNTS)     # Ten random accounts
 
         for _ in range(self.num_rows):
             transaction_uid = uuid.uuid4()
             account_uid = choice(list_acc)
-            transaction_date = self.random_date(date_in, 0).__next__().strftime("%Y-%m-%d %H:%M:%S")
+            transaction_date = self.random_date(date_in, 0).__next__().strftime('%Y-%m-%d %H:%M:%S')
             type_deal = choice(self.list_type_deal)
             transaction_amount = randint(-1000, 1000)
 
-            data_file.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(\
+            data_file.write('{0}\t{1}\t{2}\t{3}\t{4}\n'.format(\
                 transaction_uid,
                 account_uid,
                 transaction_date,
@@ -69,7 +69,7 @@ class TestDataCreator:
                 transaction_amount))
 
         data_file.close()
-        return {"log_txt": "Test data creating for {0} rows".format(self.num_rows)}
+        return {'log_txt': 'Test data creating for {0} rows'.format(self.num_rows)}
 
 
 if __name__ == '__main__':
