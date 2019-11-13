@@ -10,12 +10,15 @@ from utils.monitoring import Monitoring as m
 from adapters.database_tool import PostgreSQLCommon
 
 
+FILE_NAME_HASH = 'data/transaction_hashed.csv'
+RECONCILIATION_DB = 'reconciliation_db'
+
+
 class CsvAdapter:
     """ Class for the reading of CSV """
     def __init__(self, table_storage, file_name):
         self.file_name = file_name
-        self.table_storage = 'reconciliation_db.' + table_storage
-        self.file_name_hash = 'data/transaction_hashed.csv'
+        self.table_storage = '.'.join([RECONCILIATION_DB, table_storage])
 
     @staticmethod
     def md5(input_string):
@@ -39,7 +42,7 @@ class CsvAdapter:
         arr_line = list(line.split('\t'))
         hash_line = self.get_hash(arr_line)
 
-        with open(self.file_name_hash, 'a') as hash_txt:
+        with open(FILE_NAME_HASH, 'a') as hash_txt:
             hash_txt.write(hash_line + '\n')
 
     def process_wrapper(self, chunk_start, chunk_size):
@@ -90,15 +93,13 @@ class CsvAdapter:
         database = PostgreSQLCommon()
 
         try:
-            file = open(self.file_name_hash)
+            file = open(FILE_NAME_HASH)
             database.bulk_copy(file, self.table_storage)
 
-            message_txt = '---> Bulk insert from' + \
-                          self.file_name_hash + \
-                          'successfully completed!'
+            message_txt = '---> Bulk insert from' + FILE_NAME_HASH + 'successfully completed!'
 
-            if os.path.exists('data/transaction_hashed.csv'):
-                os.remove('data/transaction_hashed.csv')
+            if os.path.exists(FILE_NAME_HASH):
+                os.remove(FILE_NAME_HASH)
 
         except Exception as err:
             message_txt = '---> OOps! Bulk insert operation FAILED! Reason: ', str(err)
