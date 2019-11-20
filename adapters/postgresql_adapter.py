@@ -5,7 +5,10 @@ import psycopg2
 from psycopg2 import sql
 
 from adapters.database_tool import PostgreSQLCommon, PostgreSQLMultiThread
-from utils.monitoring import Monitoring as m
+from utils.monitoring import Monitoring
+
+
+m = Monitoring('postgresql_adapter')
 
 
 class PostgreSQLAdapter:
@@ -18,7 +21,6 @@ class PostgreSQLAdapter:
         self.rows_count = 0
         self.database = PostgreSQLCommon()
 
-
     def storage_create(self):
         """ Create a table for the comparing the sources """
         sql_command = sql.SQL("""
@@ -29,17 +31,16 @@ class PostgreSQLAdapter:
                 hash                uuid not null,
                 constraint {2} primary key (adapter_name, transaction_uid, hash)
             );
-            create index {3} on {0}.{1} (hash);
+            --create index {3} on {0}.{1} (hash);
             """).format(sql.Identifier(self.schema_target),
                         sql.Identifier(self.table_storage),
                         sql.Identifier('_'.join(['pk', self.table_storage])),
                         sql.Identifier('_'.join([self.table_storage, 'hash_idx'])))
         try:
             self.database.execute(sql_command)
-            print('---> Table', self.table_storage, 'has been created!')
+            m.info('Table %s has been created!' % self.table_storage)
         except psycopg2.Error as err:
-            print('---> OOps! Table creating for Storage FAILED! Reason: ', str(err))
-
+            m.error('OOps! Table creating for Storage FAILED! Reason: %s' %str(err))
 
     def drop_storage(self):
         """ Drop a staging table """
@@ -49,10 +50,10 @@ class PostgreSQLAdapter:
                         sql.Identifier(self.table_storage))
         try:
             self.database.execute(sql_command)
-            print('---> Table', self.table_storage, 'has been droped!')
+            m.info('Table %s has been droped!' % self.table_storage)
         except psycopg2.Error as err:
-            print('---> OOps! Table droping for Storage',
-                  self.table_storage, 'FAILED! Reason: ', str(err))
+            m.error('OOps! Table droping for Storage %s FAILED! Reason: %s'
+                    % (self.table_storage, str(err)))
 
     def adapter_simple_run(self):
         """ Insert hashed data from PostgreSQL """
@@ -79,11 +80,10 @@ class PostgreSQLAdapter:
 
         try:
             self.database.execute(sql_command)
-            message_txt = '---> PostgreSQLAdapter.adapter_run successfully completed'
+            m.info('PostgreSQL simple adapter_run successfully completed')
         except psycopg2.Error as err:
-            message_txt = '---> OOps! PostgreSQLAdapter.adapter_run FAILED! Reason: ', str(err)
+            m.error('OOps! PostgreSQL simple adapter_run FAILED! Reason %s' % str(err))
 
-        return {'log_txt': message_txt}
 
     def get_rows_count(self):
         """ Return a count of rows """
@@ -98,8 +98,8 @@ class PostgreSQLAdapter:
             rows_count = rows[0]
             print('rows_count', rows_count, 'rows', rows)
         except psycopg2.Error as err:
-            print('---> OOps! PostgreSQLAdapter.get_rows_count FAILED! Reason: ', str(err))
-            print(sql_command)
+            m.error('OOps! PostgreSQLAdapter.adapter_run FAILED! Reason: %s, sql command: %s'
+                    % (str(err), sql_command))
 
         return rows_count
 
@@ -136,8 +136,7 @@ class PostgreSQLAdapter:
         multi_run.create_connection_pool()
         multi_run.read_data()
 
-        message_txt = """---> PostgreSQLAdapter.PostgreSQLMultiThread.read_data
-                       successfully completed"""
+        message_txt = """---> PostgreSQLAdapter.PostgreSQLMultiThread.read_data successfully completed"""
 
         return {'log_txt': message_txt}
 

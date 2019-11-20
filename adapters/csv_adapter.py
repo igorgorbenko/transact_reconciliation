@@ -3,22 +3,42 @@
 """ Working with CSV file """
 
 import os
+import configparser
 import multiprocessing as mp
 import hashlib
 
-from utils.monitoring import Monitoring as m
+from utils.monitoring import Monitoring
 from adapters.database_tool import PostgreSQLCommon
 
+# mp.log_to_stderr()
+#
+# logger = mp.get_logger()
+# logger.setLevel(logging.INFO)
 
-FILE_NAME_HASH = 'data/transaction_hashed.csv'
-RECONCILIATION_DB = 'reconciliation_db'
+# def initLogger(self):
+#         """ Initialize logger and set to loglevel"""
+#         loglevel = self.loglevels[self.loglevel]
+#         log_format = '%(asctime)s name=%(name)s loglevel=%(levelname)s message=%(message)s'
+#         logging.basicConfig(format=log_format,
+#                             level=loglevel)
+#     	multiprocessing.log_to_stderr(loglevel)
 
+m = Monitoring('csv_adapter')
 
 class CsvAdapter:
     """ Class for the reading of CSV """
     def __init__(self, table_storage, file_name):
         self.file_name = file_name
-        self.table_storage = '.'.join([RECONCILIATION_DB, table_storage])
+        self.file_end = os.path.getsize(self.file_name)
+        self.file_end_mb = self.get_size_in_mb(self.file_end)
+
+        self.config = configparser.ConfigParser()
+        self.config.read('./conf/db.ini')
+        self.recon_db = self.config.get('POSTGRESQL', 'reconciliation_db')
+        self.file_name_hash = self.config.get('CSV', 'file_name_hash')
+
+        self.table_storage = '.'.join([self.recon_db, table_storage])
+        self.chunk_counter = 0
 
     @staticmethod
     def md5(input_string):
@@ -40,9 +60,15 @@ class CsvAdapter:
         arr_line = list(line.split('\t'))
         hash_line = self.get_hash(arr_line)
 
-        with open(FILE_NAME_HASH, 'a') as hash_txt:
+        with open(self.file_name_hash, 'a') as hash_txt:
             hash_txt.write(hash_line + '\n')
 
+    @staticmethod
+    def get_size_in_mb(file_size):
+        """ Return the size of file in Mb """
+        return round(file_size / (1024 * 1024), 2)
+
+    @Monitoring.timing
     def process_wrapper(self, chunk_start, chunk_size):
         """ Read a particular chunk """
         with open(self.file_name) as file:
@@ -51,9 +77,14 @@ class CsvAdapter:
             for line in lines:
                 self.process(line)
 
-    def chunkify(self, size=1024*1024):
+        message_txt = (('Reading from {0}Mb to {1}Mb (total: {2}Mb). ')
+                       .format(self.get_size_in_mb(chunk_start),
+                               self.get_size_in_mb(chunk_start + chunk_size),
+                               self.file_end_mb))
+        print(message_txt, end="")
+
+    def chunkify(self, size=1024*1024*5):
         """ Return a new chunk """
-        file_end = os.path.getsize(self.file_name)
         with open(self.file_name, 'rb') as file:
             chunk_end = file.tell()
             while True:
@@ -62,16 +93,17 @@ class CsvAdapter:
                 file.readline()
                 chunk_end = file.tell()
                 yield chunk_start, chunk_end - chunk_start
-                if chunk_end > file_end:
+                if chunk_end > self.file_end:
                     break
 
-    @m.timing
+    @m.wrapper(m.entering, m.exiting)
     def run_reading(self):
         """ The main method fo the reading """
         #init objects
         pool = mp.Pool(4)
         jobs = []
 
+        m.info('Run csv reading...')
         #create jobs
         for chunk_start, chunk_size in self.chunkify():
             jobs.append(pool.apply_async(self.process_wrapper,
@@ -83,25 +115,28 @@ class CsvAdapter:
 
         #clean up
         pool.close()
-        return {'log_txt' : '---> CsvAdapter.run_reading has been completed'}
+        pool.join()
 
-    @m.timing
+        m.info('CSV file reading has been completed')
+
+
+    @m.wrapper(m.time_start,
+               m.get_time_elapsed)
     def bulk_coly_to_db(self):
         """ Saving the hashed data into the database """
         database = PostgreSQLCommon()
 
         try:
-            file = open(FILE_NAME_HASH)
+            file = open(self.file_name_hash)
             database.bulk_copy(file, self.table_storage)
 
-            message_txt = '---> Bulk insert from' + FILE_NAME_HASH + 'successfully completed!'
+            m.info('Bulk insert from %s has been successfully completed!'
+                         % self.file_name_hash)
 
-            if os.path.exists(FILE_NAME_HASH):
-                os.remove(FILE_NAME_HASH)
+            if os.path.exists(self.file_name_hash):
+                os.remove(self.file_name_hash)
 
         except Exception as err:
-            message_txt = '---> OOps! Bulk insert operation FAILED! Reason: ', str(err)
+            m.error('OOps! Bulk insert operation FAILED! Reason: %s' % str(err))
         finally:
             database.close()
-
-        return {'log_txt': message_txt}
