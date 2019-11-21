@@ -76,9 +76,10 @@ class Monitoring:
             end = time()
             time_elapsed = round(end - start, 4)
 
-            if result:
-                print('{}. Elapsed time: {} sec'.format(result.get('log_txt', ''), time_elapsed))
-            else:
-                print('func: {}. Elapsed time: {} sec'.format(func.__name__, time_elapsed))
+            print('func: {}. Elapsed time: {} sec'.format(func.__name__, time_elapsed))
+            # if result:
+            #     print('{}. Elapsed time: {} sec'.format(result.get('log_txt', ''), time_elapsed))
+            # else:
+            #     print('func: {}. Elapsed time: {} sec'.format(func.__name__, time_elapsed))
             return result
         return wrapper
