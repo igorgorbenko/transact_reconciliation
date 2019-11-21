@@ -96,14 +96,19 @@ class TestDataCreator:
     def get_threads(cls, start=0,
                     num=1000, div=100):
         """ Split input value into equal chunks """
-        inter = (num - start) // div
-        mod = num % div
         threads_arr = []
 
-        gener_list = list(cls.chunks(range(0, num), start, inter + mod))
+        if num >= 100000:
+            div = num // 50000
+            inter = (num - start) // div
+            mod = num % div
 
-        for gen in gener_list:
-            threads_arr.append([gen.start, gen.stop])
+            gener_list = list(cls.chunks(range(0, num), start, inter + mod))
+
+            for gen in gener_list:
+                threads_arr.append([gen.start, gen.stop])
+        else:
+            threads_arr.append([start, num])
 
         return threads_arr
 
@@ -113,11 +118,8 @@ class TestDataCreator:
         pool = mp.Pool(mp.cpu_count() + 2)
         jobs = []
 
-        div = self.num_rows // 50000
-
         for chunk_start, chunk_end in self.get_threads(0,
-                                                       self.num_rows,
-                                                       div):
+                                                       self.num_rows):
             jobs.append(pool.apply_async(self.create_test_data_mp,
                                          (chunk_start, chunk_end)))
         #wait for all jobs to finish
