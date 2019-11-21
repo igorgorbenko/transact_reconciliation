@@ -20,8 +20,7 @@ class Monitoring:
 
         if not logger.handlers:
             logger.setLevel(logging.INFO)
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                                          '%Y-%m-%d %H:%M:%S')
+            formatter = logging.Formatter('%(asctime)s - %(name)20s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S')
             console_handler = logging.StreamHandler(sys.stdout)
             console_handler.setFormatter(formatter)
             logger.addHandler(console_handler)
@@ -40,6 +39,7 @@ class Monitoring:
         """ Wrapper """
         def decorate(func):
             """ Decorator """
+            @wraps(func)
             def call(*args, **kwargs):
                 """ Actual wrapping """
                 pre(func)
@@ -51,11 +51,11 @@ class Monitoring:
 
     def entering(self, func):
         """ Pre function logging """
-        self.__logger.info('Entered %s', func.__name__)
+        self.__logger.info('Entered %s function', func.__name__)
 
     def exiting(self, func):
         """ Post function logging """
-        self.__logger.info('Exited %s', func.__name__)
+        self.__logger.info('Exited %s function', func.__name__)
 
     def time_start(self, func):
         self.start_time = time()

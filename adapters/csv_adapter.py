@@ -77,7 +77,7 @@ class CsvAdapter:
             for line in lines:
                 self.process(line)
 
-        message_txt = (('Reading from {0}Mb to {1}Mb (total: {2}Mb). ')
+        message_txt = (('\tReading from {:7} Mb to {:7} Mb (total: {} Mb). ')
                        .format(self.get_size_in_mb(chunk_start),
                                self.get_size_in_mb(chunk_start + chunk_size),
                                self.file_end_mb))
@@ -131,12 +131,11 @@ class CsvAdapter:
             database.bulk_copy(file, self.table_storage)
 
             m.info('Bulk insert from %s has been successfully completed!'
-                         % self.file_name_hash)
-
-            if os.path.exists(self.file_name_hash):
-                os.remove(self.file_name_hash)
-
+                   % self.file_name_hash)
         except Exception as err:
             m.error('OOps! Bulk insert operation FAILED! Reason: %s' % str(err))
         finally:
             database.close()
+
+            if os.path.exists(self.file_name_hash):
+                os.remove(self.file_name_hash)
