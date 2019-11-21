@@ -53,10 +53,10 @@ class Reconciliator:
     def start_all(self):
         """ Run all steps """
         self.storage_preparing()
-        self.postgresql_adapter_run()
+        # self.postgresql_adapter_run()
         self.csv_adapter_run()
-        self.get_report()
-        self.reconcillation_run()
+        # self.get_report()
+        # self.reconcillation_run()
 
 @m.timing
 def main():

@@ -71,7 +71,7 @@ class CsvAdapter:
     @Monitoring.timing
     def process_wrapper(self, chunk_start, chunk_size):
         """ Read a particular chunk """
-        with open(self.file_name) as file:
+        with open(self.file_name, newline='\n') as file:
             file.seek(chunk_start)
             lines = file.read(chunk_size).splitlines()
             for line in lines:

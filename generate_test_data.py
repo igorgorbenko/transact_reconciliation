@@ -78,8 +78,8 @@ class TestDataCreator:
                              type_deal,
                              transaction_amount])
 
-        with open(self.data_file, 'a') as file:
-            csv_writer = csv.writer(file, quoting=csv.QUOTE_NONNUMERIC, delimiter='\t')
+        with open(self.data_file, 'a', newline='\n') as file:
+            csv_writer = csv.writer(file, quoting=csv.QUOTE_NONNUMERIC, delimiter='\t', )
             csv_writer.writerows(new_rows)
             file.flush()
 
