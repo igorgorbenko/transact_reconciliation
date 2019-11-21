@@ -15,10 +15,6 @@ import datetime as dt
 
 from utils.monitoring import Monitoring
 
-# FILE_NAME = 'data/transaction_data.csv'
-# INITIAL_DATE = datetime.datetime(2015, 1, 1, 12, 00)
-# RANDOM_ACCOUNTS = 10
-# LIST_TYPE_DEAL = ['commision', 'deal']
 
 m = Monitoring('csv_adapter')
 
@@ -35,6 +31,7 @@ class TestDataCreator:
         self.date_in = dt.datetime.strptime(self.config.get('MAIN', 'initial_data'),
                                             '%Y-%m-%d')
         self.random_accounts_count = int(self.config.get('MAIN', 'random_accounts'))
+        self.list_acc = self.get_accounts_num()     # Ten random accounts
 
         self.list_type_deal = ['commision', 'deal']
         self.num_rows = num_rows
@@ -61,41 +58,14 @@ class TestDataCreator:
         return acc_list
 
     @m.timing
-    def create_test_data(self):
-        """ Generating and saving to the file """
-        data_file = open(self.data_file, 'w')
-        date_in = self.date_in
-        list_acc = self.get_accounts_num()     # Ten random accounts
-
-        for _ in range(self.num_rows):
-            transaction_uid = uuid.uuid4()
-            account_uid = choice(list_acc)
-            transaction_date = (self.random_date(date_in, 0)
-                                .__next__()
-                                .strftime('%Y-%m-%d %H:%M:%S'))
-            type_deal = choice(self.list_type_deal)
-            transaction_amount = randint(-1000, 1000)
-
-            data_file.write('{0}\t{1}\t{2}\t{3}\t{4}\n'.format(
-                transaction_uid,
-                account_uid,
-                transaction_date,
-                type_deal,
-                transaction_amount))
-
-        data_file.close()
-        print('Test data creating for {0} rows. '.format(self.num_rows), end=' ')
-
-    @m.timing
     def create_test_data_mp(self, chunk_start, chunk_end):
         """ Generating and saving to the file """
-        list_acc = self.get_accounts_num()     # Ten random accounts
         num_rows_mp = chunk_end - chunk_start
         new_rows = []
 
         for _ in range(num_rows_mp):
             transaction_uid = uuid.uuid4()
-            account_uid = choice(list_acc)
+            account_uid = choice(self.list_acc)
             transaction_date = (self.random_date(self.date_in, 0)
                                 .__next__()
                                 .strftime('%Y-%m-%d %H:%M:%S'))
@@ -114,7 +84,7 @@ class TestDataCreator:
             file.flush()
 
         print('\tTest data created from {:7} to {:7} rows. '.format(chunk_start,
-                                                                      chunk_end), end=' ')
+                                                                    chunk_end), end=' ')
 
     @staticmethod
     def chunks(array, start, num):
@@ -126,7 +96,6 @@ class TestDataCreator:
     def get_threads(cls, start=0,
                     num=1000, div=100):
         """ Split input value into equal chunks """
-        div = num // 10000
         inter = (num - start) // div
         mod = num % div
         threads_arr = []
@@ -140,13 +109,17 @@ class TestDataCreator:
 
     @m.wrapper(m.entering, m.exiting)
     def run_writing(self):
-        pool = mp.Pool(4)
+        """ Writing the test data into csv file """
+        pool = mp.Pool(mp.cpu_count() + 2)
         jobs = []
 
-        for chunk_start, chunk_end in self.get_threads(0, self.num_rows):
+        div = self.num_rows // 50000
+
+        for chunk_start, chunk_end in self.get_threads(0,
+                                                       self.num_rows,
+                                                       div):
             jobs.append(pool.apply_async(self.create_test_data_mp,
                                          (chunk_start, chunk_end)))
-
         #wait for all jobs to finish
         for job in jobs:
             job.get()
@@ -154,54 +127,6 @@ class TestDataCreator:
         #clean up
         pool.close()
         pool.join()
-
-    @m.timing
-    def create_test_data_mp2(self, numbers):
-        list_acc = self.get_accounts_num()     # Ten random accounts
-        # num_rows_mp = chunk_end - chunk_start
-        # num_rows_mp = chunk_end - chunk_start
-        new_rows = []
-
-        for _ in range(numbers[0], numbers[1]):
-            transaction_uid = uuid.uuid4()
-            account_uid = choice(list_acc)
-            transaction_date = (self.random_date(self.date_in, 0)
-                                .__next__()
-                                .strftime('%Y-%m-%d %H:%M:%S'))
-            type_deal = choice(self.list_type_deal)
-            transaction_amount = randint(-1000, 1000)
-
-            new_rows.append([transaction_uid,
-                             account_uid,
-                             transaction_date,
-                             type_deal,
-                             transaction_amount])
-
-        print('\tTest data created from {:10} to {:10} rows. '.format(numbers[0],
-                                                                      numbers[1]), end=' ')
-        return new_rows
-            # yield transaction_uid, account_uid, transaction_date, type_deal, transaction_amount
-
-
-    @m.wrapper(m.entering, m.exiting)
-    def run_writing2(self):
-        pool = mp.Pool(4)
-
-        numbers = self.get_threads(0, self.num_rows) #list(range(self.num_rows))
-        # chunk_start, chunk_end = self.get_threads(0, self.num_rows)
-
-        with open(self.data_file, 'a') as file:
-            csv_writer = csv.writer(file, quoting=csv.QUOTE_NONNUMERIC, delimiter='\t')
-
-            for result in pool.imap(self.create_test_data_mp2, numbers):
-                csv_writer.writerows(result)
-                # file.flush()
-
-        #clean up
-        pool.close()
-        pool.join()
-
-
 
 if __name__ == '__main__':
 
@@ -211,6 +136,4 @@ if __name__ == '__main__':
         num_rows = int(sys.argv[1])
 
     tdc = TestDataCreator(num_rows)
-    # tdc.create_test_data()
     tdc.run_writing()
-    # tdc.run_writing2()
