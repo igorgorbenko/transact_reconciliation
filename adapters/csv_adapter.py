@@ -68,7 +68,7 @@ class CsvAdapter:
         """ Return the size of file in Mb """
         return round(file_size / (1024 * 1024), 2)
 
-    @Monitoring.timing
+    @m.timing
     def process_wrapper(self, chunk_start, chunk_size):
         """ Read a particular chunk """
         with open(self.file_name, newline='\n') as file:
@@ -81,7 +81,7 @@ class CsvAdapter:
                        .format(self.get_size_in_mb(chunk_start),
                                self.get_size_in_mb(chunk_start + chunk_size),
                                self.file_end_mb))
-        print(message_txt, end="")
+        print(message_txt, end='')
 
     def chunkify(self, size=1024*1024*5):
         """ Return a new chunk """
@@ -92,9 +92,16 @@ class CsvAdapter:
                 file.seek(size, 1)
                 file.readline()
                 chunk_end = file.tell()
-                yield chunk_start, chunk_end - chunk_start
+                # yield chunk_start, chunk_end - chunk_start
+                # if chunk_end > self.file_end:
+                #     break
                 if chunk_end > self.file_end:
+                    chunk_end = self.file_end
+                    yield chunk_start, chunk_end - chunk_start
                     break
+                else:
+                    yield chunk_start, chunk_end - chunk_start
+
 
     @m.wrapper(m.entering, m.exiting)
     def run_reading(self):
@@ -120,8 +127,7 @@ class CsvAdapter:
         m.info('CSV file reading has been completed')
 
 
-    @m.wrapper(m.time_start,
-               m.get_time_elapsed)
+    @m.wrapper(m.entering, m.exiting)
     def bulk_coly_to_db(self):
         """ Saving the hashed data into the database """
         database = PostgreSQLCommon()

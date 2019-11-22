@@ -96,13 +96,11 @@ class PostgreSQLAdapter:
         try:
             rows = self.database.query_one(sql_command)
             rows_count = rows[0]
-            print('rows_count', rows_count, 'rows', rows)
         except psycopg2.Error as err:
             m.error('OOps! PostgreSQLAdapter.adapter_run FAILED! Reason: %s, sql command: %s'
                     % (str(err), sql_command))
 
         return rows_count
-
 
     def adapter_thread_run(self):
         """ Adapter running in multi-threads option """
@@ -129,31 +127,27 @@ class PostgreSQLAdapter:
             from pre_select s;""").format(sql.Identifier(self.schema_target),
                                           sql.Identifier(self.table_storage))
 
-        print('---> Run multiprocessing read...')
+        m.info('Run multiprocessing read...')
         multi_run = PostgreSQLMultiThread(sql_command, self.rows_count)
 
         #Creating database connection pool to help connection shared along process
         multi_run.create_connection_pool()
         multi_run.read_data()
 
-        message_txt = """---> PostgreSQLAdapter.PostgreSQLMultiThread.read_data successfully completed"""
-
-        return {'log_txt': message_txt}
+        m.info('Read_data successfully completed')
 
 
-    @m.timing
+    @m.wrapper(m.entering, m.exiting)
     def adapter_run_main(self):
         """ Depending on the volume of input data,
             the necessary handler is launched """
         self.rows_count = self.get_rows_count()
+
         if self.rows_count < 100000:
             # Simple processing
-            result = self.adapter_simple_run()
+            self.adapter_simple_run()
         else:
-            result = self.adapter_thread_run()
-
-        return result
-
+            self.adapter_thread_run()
 
     @m.timing
     def get_discrepancy_report(self):
@@ -175,22 +169,21 @@ class PostgreSQLAdapter:
         try:
             rows = self.database.query(sql_command)
 
-            message_txt = '---> PostgreSQLAdapter.get_discrepancy_report successfully completed'
+            m.info('Discrepancy_report successfully completed!')
 
-            print('\nNumber of discrepancies detected by adapters')
-            print('---------------------------------')
+            print('\n\tNumber of discrepancies detected by adapters')
+            print('\t---------------------------------')
             for row in rows:
-                print(row)
-            print('---------------------------------')
+                print('\t', end='')
+                print('{:20} | {:10}'.format(row[0], row[1]))
+                # print('\t'.join(map(str, row)))
+            print('\t---------------------------------')
 
         except psycopg2.Error as err:
-            message_txt = ('---> OOps! PostgreSQLAdapter.get_discrepancy_report FAILED!',
-                           'Reason:' + str(err))
-
-        return {'log_txt': message_txt}
+            m.error('OOps! Get_discrepancy_report FAILED! Reason: %s' % str(err))
 
 
-    @m.timing
+    @m.wrapper(m.entering, m.exiting)
     def save_clean_data(self):
         """ Saving the reconcilied date into """
         sql_command = sql.SQL("""
@@ -226,10 +219,7 @@ class PostgreSQLAdapter:
         try:
             self.database.execute(sql_command)
 
-            message_txt = '---> PostgreSQLAdapter.save_clean_data successfully completed'
+            m.info('Saving to the clean schema has been successfully completed!')
         except psycopg2.Error as err:
-            message_txt = ('---> OOps! PostgreSQLAdapter.save_clean_data FAILED!',
-                           'Reason: ' + str(err))
-            print(sql_command)
-
-        return {'log_txt': message_txt}
+            m.error('OOps! Save_clean_data FAILED! Reason: %s, SQL command: %s'
+                    % str(err), sql_command)

@@ -79,7 +79,7 @@ class TestDataCreator:
                              transaction_amount])
 
         with open(self.data_file, 'a', newline='\n') as file:
-            csv_writer = csv.writer(file, quoting=csv.QUOTE_NONNUMERIC, delimiter='\t', )
+            csv_writer = csv.writer(file, delimiter='\t', )
             csv_writer.writerows(new_rows)
             file.flush()
 
