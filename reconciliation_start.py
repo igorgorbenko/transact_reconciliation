@@ -3,22 +3,30 @@
 """ The main reconciliation process module"""
 
 import time
+import configparser
 
 from adapters.postgresql_adapter import PostgreSQLAdapter
 from adapters.csv_adapter import CsvAdapter
 
-from utils.monitoring import Monitoring as m
+from utils.monitoring import Monitoring
+
+
+m = Monitoring('reconciliation_main')
 
 
 class Reconciliator:
     """ Reconciliation executor """
     def __init__(self):
         # Unique table name for the parallel processing
+        self.config = configparser.ConfigParser()
+        self.config.read('./conf/db.ini')
+
         self.storage_table = 'storage_' + str(int(time.time()))
         self.psa = PostgreSQLAdapter(self.storage_table,
-                                     'transaction_db_raw',
-                                     'reconciliation_db')
-        self.csv = CsvAdapter(self.storage_table, 'data/transaction_data.csv')
+                                     self.config.get('POSTGRESQL', 'transaction_db_raw'),
+                                     self.config.get('POSTGRESQL', 'reconciliation_db'))
+        self.csv = CsvAdapter(self.storage_table,
+                              self.config.get('CSV', 'file_name_raw'))
 
     def storage_preparing(self):
         """ Database preparing """
@@ -54,8 +62,9 @@ class Reconciliator:
 def main():
     """ Main starter """
     recon = Reconciliator()
+    m.info('START!')
     recon.start_all()
-    return {'log_txt': '---> Processing has been completed'}
+    m.info('END!')
 
 if __name__ == '__main__':
     main()

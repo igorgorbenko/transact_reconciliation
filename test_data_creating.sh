@@ -46,7 +46,7 @@ psql $POSTGRESQL_CONN  -c \
     FROM 'data/transaction_data.csv'
     WITH (format 'csv', delimiter E'\t')"""
 
-echo "------- Start delete random 10 rows from table... -------"
+echo "------- Start delete random rows from table... -------"
 psql $POSTGRESQL_CONN  -c \
     "delete from transaction_db_raw.transaction_log
     where ctid = any(array(
@@ -54,7 +54,7 @@ psql $POSTGRESQL_CONN  -c \
       from transaction_db_raw.transaction_log
       tablesample bernoulli (1) ))"
 
-echo "------- Update  random 10 rows from table... -------"
+echo "------- Update random rows from table... -------"
 psql $POSTGRESQL_CONN  -c \
   "update transaction_db_raw.transaction_log
   set transaction_amount = round(random()::numeric, 2)

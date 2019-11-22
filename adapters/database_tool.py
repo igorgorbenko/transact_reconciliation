@@ -11,13 +11,15 @@ import psycopg2
 from psycopg2.extras import DictCursor
 from psycopg2.pool import ThreadedConnectionPool
 
-from utils.monitoring import Monitoring as m
+from utils.monitoring import Monitoring
 
 
 config = configparser.ConfigParser()
 config.read('./conf/db.ini')
 
 DB_URL = config.get('POSTGRESQL', 'db_url')
+
+m = Monitoring('db_tool')
 
 
 class PostgreSQLMultiThread:
@@ -31,11 +33,13 @@ class PostgreSQLMultiThread:
         self.str_sql = str_sql
         self.total_records = total_records
 
+        # calculate the max and min connection required
+        self.pid_max = self.total_records // 100000
+
     def create_connection_pool(self):
         """ Create the thread safe threaded postgres connection pool"""
 
-        # calculate the max and min connection required
-        max_conn = self._select_conn_count
+        max_conn = self.pid_max#self._select_conn_count
         min_conn = max_conn / 2
 
         # creating separate connection for read and write purpose
@@ -64,17 +68,20 @@ class PostgreSQLMultiThread:
 
         return threads_arr
 
-    @m.timing
+    # @m.timing
     def read_data(self):
         """
         Read the data from the postgres and shared those records with each
         processor to perform their operation using threads
         Here we calculate the pardition value to help threading to read data from database
         """
+        # pid_max = self.total_records // 100000
+
         threads_array = self.get_threads(0,
                                          self.total_records,
-                                         10)
-        for pid in range(1, 11):
+                                         self.pid_max)
+
+        for pid in range(1, self.pid_max):
             # Getting connection from the connection pool
             select_conn = self._select_conn_pool.getconn()
             select_conn.autocommit = 1
@@ -90,17 +97,20 @@ class PostgreSQLMultiThread:
             process.daemon = True
             process.start()
             process.join()
+            select_conn.close()
 
-        return {'log_txt': 'Process {}'.format(pid)}
+            m.info('Process %s' % pid)
 
 
+    @m.timing
     def process_data(self, queue, pid,
                      start_index, end_index,
                      select_conn):
         """
         Here we process the each process into 10 multiple threads to do data process
         """
-        print('\nStarted processing record from %s to %s' % (start_index, end_index))
+        m.info('Started processing record from %s to %s' % (start_index, end_index))
+
         threads_array = self.get_threads(start_index,
                                          end_index,
                                          10)
@@ -119,6 +129,7 @@ class PostgreSQLMultiThread:
             worker.start()
             worker.join()
 
+    @m.timing
     def process_thread(self, queue, pid, tid,
                        start_index, end_index,
                        sel_cur, lock):
@@ -127,11 +138,13 @@ class PostgreSQLMultiThread:
         experience have the same data
         """
         sel_cur.execute(self.str_sql, (int(start_index), int(end_index)))
-
-        print('\t', 'pid', pid,
-              'tid', tid,
-              'start_index', start_index,
-              'end_index', end_index)
+        sel_cur.close()
+        message_txt = ('\t pid {:2}, tid {:2}, '
+                       'start_index {:7}, end_index {:7}. ').format(pid,
+                                                                    tid,
+                                                                    start_index,
+                                                                    end_index)
+        print(message_txt, end=' ')
 
 
 class PostgreSQLCommon():
