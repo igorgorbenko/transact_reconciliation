@@ -92,7 +92,7 @@ class CsvAdapter:
     def run_reading(self):
         """ The main method fo the reading """
         #init objects
-        pool = mp.Pool(4)
+        pool = mp.Pool(mp.cpu_count() + 2)
         jobs = []
 
         m.info('Run csv reading...')
