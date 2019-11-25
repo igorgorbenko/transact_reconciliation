@@ -10,19 +10,6 @@ import hashlib
 from utils.monitoring import Monitoring
 from adapters.database_tool import PostgreSQLCommon
 
-# mp.log_to_stderr()
-#
-# logger = mp.get_logger()
-# logger.setLevel(logging.INFO)
-
-# def initLogger(self):
-#         """ Initialize logger and set to loglevel"""
-#         loglevel = self.loglevels[self.loglevel]
-#         log_format = '%(asctime)s name=%(name)s loglevel=%(levelname)s message=%(message)s'
-#         logging.basicConfig(format=log_format,
-#                             level=loglevel)
-#     	multiprocessing.log_to_stderr(loglevel)
-
 m = Monitoring('csv_adapter')
 
 class CsvAdapter:
