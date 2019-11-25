@@ -79,9 +79,7 @@ class CsvAdapter:
                 file.seek(size, 1)
                 file.readline()
                 chunk_end = file.tell()
-                # yield chunk_start, chunk_end - chunk_start
-                # if chunk_end > self.file_end:
-                #     break
+
                 if chunk_end > self.file_end:
                     chunk_end = self.file_end
                     yield chunk_start, chunk_end - chunk_start
