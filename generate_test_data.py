@@ -16,7 +16,7 @@ import datetime as dt
 from utils.monitoring import Monitoring
 
 
-m = Monitoring('csv_adapter')
+m = Monitoring('data_generating')
 
 class TestDataCreator:
     """ The main class for the data generating """
