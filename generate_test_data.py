@@ -28,7 +28,7 @@ class TestDataCreator:
         if os.path.exists(self.data_file):
             os.remove(self.data_file)
 
-        self.date_in = dt.datetime.strptime(self.config.get('MAIN', 'initial_data'),
+        self.date_in = dt.datetime.strptime(self.config.get('MAIN', 'initial_date'),
                                             '%Y-%m-%d')
         self.random_accounts_count = int(self.config.get('MAIN', 'random_accounts'))
         self.list_acc = self.get_accounts_num()     # Ten random accounts
