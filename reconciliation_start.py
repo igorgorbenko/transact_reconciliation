@@ -36,11 +36,13 @@ class Reconciliator:
         """ Postgre side preparing """
         self.psa.adapter_run_main()
 
+    @m.timing
     def csv_adapter_run(self):
         """ CSV side preparing """
         self.csv.run_reading()
-        self.csv.bulk_coly_to_db()
+        self.csv.bulk_copy_to_db()
 
+    @m.timing
     def get_report(self):
         """ Return the detailed report """
         self.psa.get_discrepancy_report()
@@ -53,8 +55,8 @@ class Reconciliator:
     def start_all(self):
         """ Run all steps """
         self.storage_preparing()
-        self.postgresql_adapter_run()
         self.csv_adapter_run()
+        self.postgresql_adapter_run()
         self.get_report()
         self.reconcillation_run()
 

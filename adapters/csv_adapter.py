@@ -88,7 +88,8 @@ class CsvAdapter:
                     yield chunk_start, chunk_end - chunk_start
 
 
-    @m.wrapper(m.entering, m.exiting)
+    # @m.wrapper(m.entering, m.exiting)
+    @m.timing
     def run_reading(self):
         """ The main method fo the reading """
         #init objects
@@ -111,9 +112,9 @@ class CsvAdapter:
 
         m.info('CSV file reading has been completed')
 
-
+    @m.timing
     @m.wrapper(m.entering, m.exiting)
-    def bulk_coly_to_db(self):
+    def bulk_copy_to_db(self):
         """ Saving the hashed data into the database """
         database = PostgreSQLCommon()
 

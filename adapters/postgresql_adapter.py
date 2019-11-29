@@ -31,7 +31,7 @@ class PostgreSQLAdapter:
                 hash                uuid not null,
                 constraint {2} primary key (adapter_name, transaction_uid, hash)
             );
-            --create index {3} on {0}.{1} (hash);
+            create index {3} on {0}.{1} (hash);
             """).format(sql.Identifier(self.schema_target),
                         sql.Identifier(self.table_storage),
                         sql.Identifier('_'.join(['pk', self.table_storage])),
@@ -40,7 +40,7 @@ class PostgreSQLAdapter:
             self.database.execute(sql_command)
             m.info('Table %s has been created!' % self.table_storage)
         except psycopg2.Error as err:
-            m.error('OOps! Table creating for Storage FAILED! Reason: %s' %str(err))
+            m.error('OOps! Table creating for Storage FAILED! Reason: %s' % str(err.pgerror))
 
     def drop_storage(self):
         """ Drop a staging table """
@@ -53,7 +53,7 @@ class PostgreSQLAdapter:
             m.info('Table %s has been droped!' % self.table_storage)
         except psycopg2.Error as err:
             m.error('OOps! Table droping for Storage %s FAILED! Reason: %s'
-                    % (self.table_storage, str(err)))
+                    % (self.table_storage, str(err.pgerror)))
 
     def adapter_simple_run(self):
         """ Insert hashed data from PostgreSQL """
@@ -82,7 +82,7 @@ class PostgreSQLAdapter:
             self.database.execute(sql_command)
             m.info('PostgreSQL simple adapter_run successfully completed')
         except psycopg2.Error as err:
-            m.error('OOps! PostgreSQL simple adapter_run FAILED! Reason %s' % str(err))
+            m.error('OOps! PostgreSQL simple adapter_run FAILED! Reason %s' % str(err.pgerror))
 
 
     def get_rows_count(self):
@@ -98,7 +98,7 @@ class PostgreSQLAdapter:
             rows_count = rows[0]
         except psycopg2.Error as err:
             m.error('OOps! PostgreSQLAdapter.adapter_run FAILED! Reason: %s, sql command: %s'
-                    % (str(err), sql_command))
+                    % (str(err.pgerror), sql_command))
 
         return rows_count
 
@@ -136,7 +136,7 @@ class PostgreSQLAdapter:
 
         m.info('Read_data successfully completed')
 
-
+    @m.timing
     @m.wrapper(m.entering, m.exiting)
     def adapter_run_main(self):
         """ Depending on the volume of input data,
@@ -149,7 +149,7 @@ class PostgreSQLAdapter:
         else:
             self.adapter_thread_run()
 
-    @m.timing
+    @m.wrapper(m.entering, m.exiting)
     def get_discrepancy_report(self):
         """ Reconciliation report returning """
 
@@ -180,9 +180,10 @@ class PostgreSQLAdapter:
             print('\t---------------------------------')
 
         except psycopg2.Error as err:
-            m.error('OOps! Get_discrepancy_report FAILED! Reason: %s' % str(err))
+            m.error('OOps! Get_discrepancy_report FAILED! Reason: %s' % str(err.pgerror))
 
 
+    @m.timing
     @m.wrapper(m.entering, m.exiting)
     def save_clean_data(self):
         """ Saving the reconcilied date into """
@@ -222,4 +223,4 @@ class PostgreSQLAdapter:
             m.info('Saving to the clean schema has been successfully completed!')
         except psycopg2.Error as err:
             m.error('OOps! Save_clean_data FAILED! Reason: %s, SQL command: %s'
-                    % str(err), sql_command)
+                    % (str(err.pgerror), sql_command))

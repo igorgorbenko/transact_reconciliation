@@ -102,7 +102,7 @@ class PostgreSQLMultiThread:
             m.info('Process %s' % pid)
 
 
-    @m.timing
+    # @m.timing
     def process_data(self, queue, pid,
                      start_index, end_index,
                      select_conn):

@@ -35,7 +35,8 @@ class Monitoring:
         """ Create a new log message into stdout """
         self.__logger.error(message)
 
-    def wrapper(self, pre, post):
+    @staticmethod
+    def wrapper(pre, post):
         """ Wrapper """
         def decorate(func):
             """ Decorator """
@@ -57,13 +58,12 @@ class Monitoring:
         """ Post function logging """
         self.__logger.info('Exited %s function', func.__name__)
 
-    def time_start(self, func):
+    def time_start(self):
         self.start_time = time()
 
-    def get_time_elapsed(self, func):
+    def get_time_elapsed(self):
         self.end_time = time()
         time_elapsed = round(self.end_time - self.start_time, 4)
-        # self.__logger.info('Elapsed time: {} sec'.format(time_elapsed))
         print('Elapsed time: {} sec'.format(time_elapsed))
 
     @staticmethod
@@ -76,10 +76,7 @@ class Monitoring:
             end = time()
             time_elapsed = round(end - start, 4)
 
-            print('func: {}. Elapsed time: {} sec'.format(func.__name__, time_elapsed))
-            # if result:
-            #     print('{}. Elapsed time: {} sec'.format(result.get('log_txt', ''), time_elapsed))
-            # else:
-            #     print('func: {}. Elapsed time: {} sec'.format(func.__name__, time_elapsed))
+            print('\tfunc: {:^15}. Elapsed time: {} sec'.format(func.__name__, time_elapsed))
+
             return result
         return wrapper

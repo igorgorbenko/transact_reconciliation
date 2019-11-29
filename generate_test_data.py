@@ -57,6 +57,20 @@ class TestDataCreator:
             self.random_accounts_count -= 1
         return acc_list
 
+    def write_in_file(self, rows):
+        """ Save data into csv file """
+        flag = True
+        try:
+            with open(self.data_file, 'a', newline='\n') as file:
+                csv_writer = csv.writer(file, delimiter='\t', )
+                csv_writer.writerows(rows)
+                file.flush()
+        except Exception as err:
+            flag = False
+            m.error("OOps! File write function failed! Reason: %s'" % str(err))
+
+        return flag
+
     @m.timing
     def create_test_data_mp(self, chunk_start, chunk_end):
         """ Generating and saving to the file """
@@ -78,13 +92,9 @@ class TestDataCreator:
                              type_deal,
                              transaction_amount])
 
-        with open(self.data_file, 'a', newline='\n') as file:
-            csv_writer = csv.writer(file, delimiter='\t', )
-            csv_writer.writerows(new_rows)
-            file.flush()
-
-        print('\tTest data created from {:7} to {:7} rows. '.format(chunk_start,
-                                                                    chunk_end), end=' ')
+        if self.write_in_file(new_rows):
+            print('\tTest data created from {:7} to {:7} rows. '.format(chunk_start,
+                                                                        chunk_end), end=' ')
 
     @staticmethod
     def chunks(array, start, num):
