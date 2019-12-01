@@ -181,12 +181,14 @@ class GenerateTestData:
         except Exception as err:
             m.error('Oops! Folder creating FAILED! Reason: %s' % err)
 
+    @m.timing
     @m.wrapper(m.entering, m.exiting)
     def create_csv_file(self, num_rows, ):
         """ Create csv file """
         csv_creator = TestDataCreator(num_rows, self.config, self.data_file)
         csv_creator.run_csv_writing()
 
+    @m.timing
     @m.wrapper(m.entering, m.exiting)
     def bulk_copy_to_db(self):
         """ Insert data into DB """
@@ -221,14 +223,26 @@ class GenerateTestData:
                                         sql.Identifier(self.raw_table_name))
         try:
             rows = self.database.execute(sql_command)
-            print('rows', rows)
-            m.info('Has been deleted %s rows from table %s' % (rows, self.raw_table_name))
+            m.info('Has been deleted [%s rows] from table %s' % (rows, self.raw_table_name))
         except psycopg2.Error as err:
             m.error('Oops! Delete random rows has been FAILED. Reason: %s' % err.pgerror)
 
+    @m.wrapper(m.entering, m.exiting)
     def random_update_rows(self):
         """ Random update some rows from the table """
-        pass
+        sql_command = sql.SQL("""
+                update {0}.{1}
+                set transaction_amount = round(random()::numeric, 2)
+                where ctid = any(array(
+                  select ctid
+                  from {0}.{1}
+                  tablesample bernoulli (1) ))""").format(sql.Identifier(self.schema_raw),
+                                                          sql.Identifier(self.raw_table_name))
+        try:
+            rows = self.database.execute(sql_command)
+            m.info('Has been updated [%s rows] from table %s' % (rows, self.raw_table_name))
+        except psycopg2.Error as err:
+            m.error('Oops! Delete random rows has been FAILED. Reason: %s' % err.pgerror)
 
     def run(self, num_rows):
         """ Run the proceess """
@@ -239,6 +253,7 @@ class GenerateTestData:
         self.random_delete_rows()
         self.random_update_rows()
 
+@m.timing
 def main():
     """ Data creating """
     if len(sys.argv) > 1:

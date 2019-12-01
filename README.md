@@ -10,7 +10,7 @@
 2. Put the database url in config file conf/db.ini
 
 3. Run script for the test data preparation:
-    ./test_data_creating.sh 10000
+    ./generate_test_data.py 10000
 
 4. Run reconciliation script:
     python ./reconciliation_start.py
