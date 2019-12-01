@@ -22,6 +22,7 @@ getValue()
 
 POSTGRESQL_CONN=$(getValue POSTGRESQL db_url < conf/db.ini)
 
+mkdir -p data
 
 psql $POSTGRESQL_CONN -a -f sql/schema_transaction.sql  >/dev/null 2>&1
 

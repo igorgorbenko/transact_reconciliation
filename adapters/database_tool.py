@@ -6,6 +6,7 @@ import threading
 from multiprocessing import Process
 from multiprocessing import Queue
 import configparser
+from math import floor
 
 import psycopg2
 from psycopg2.extras import DictCursor
@@ -33,8 +34,10 @@ class PostgreSQLMultiThread:
         self.str_sql = str_sql
         self.total_records = total_records
 
+        print('self.total_records', self.total_records)
+
         # calculate the max and min connection required
-        self.pid_max = self.total_records // 100000
+        self.pid_max = floor(self.total_records / 100000)
 
     def create_connection_pool(self):
         """ Create the thread safe threaded postgres connection pool"""
@@ -80,8 +83,9 @@ class PostgreSQLMultiThread:
         threads_array = self.get_threads(0,
                                          self.total_records,
                                          self.pid_max)
+        print('self.pid_max', self.pid_max)
 
-        for pid in range(1, self.pid_max):
+        for pid in range(1, self.pid_max + 1):
             # Getting connection from the connection pool
             select_conn = self._select_conn_pool.getconn()
             select_conn.autocommit = 1
@@ -166,15 +170,17 @@ class PostgreSQLCommon():
 
     def execute(self, query, **kwargs):
         """ DML with transaction """
-        with self.conn.cursor(cursor_factory=DictCursor) as cur:
+        with self.conn.cursor() as cur:
             cur.execute(query, kwargs)
+            rows_count = cur.rowcount
             self.conn.commit()
             cur.close()
+            return rows_count
 
-    def bulk_copy(self, file_source, target_table):
+    def bulk_copy(self, file_source, target_table, columns=None):
         """ Massive insertion """
         with self.conn.cursor(cursor_factory=DictCursor) as cur:
-            cur.copy_from(file_source, target_table, sep="\t")
+            cur.copy_from(file_source, target_table, sep='\t', columns=columns)
             self.conn.commit()
             cur.close()
 
