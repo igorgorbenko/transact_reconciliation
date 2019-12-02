@@ -140,6 +140,8 @@ class TestDataCreator:
 
 
 class GenerateTestData:
+    """ The main class for creating a dummy data """
+
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read('./conf/db.ini')
