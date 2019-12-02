@@ -34,7 +34,7 @@ class PostgreSQLMultiThread:
         self.str_sql = str_sql
         self.total_records = total_records
 
-        print('self.total_records', self.total_records)
+        m.info('Total rows for processing %s' % self.total_records)
 
         # calculate the max and min connection required
         self.pid_max = floor(self.total_records / 100000)
@@ -83,9 +83,10 @@ class PostgreSQLMultiThread:
         threads_array = self.get_threads(0,
                                          self.total_records,
                                          self.pid_max)
-        print('self.pid_max', self.pid_max)
 
         for pid in range(1, self.pid_max + 1):
+            m.info('Process %s' % pid)
+
             # Getting connection from the connection pool
             select_conn = self._select_conn_pool.getconn()
             select_conn.autocommit = 1
@@ -102,8 +103,6 @@ class PostgreSQLMultiThread:
             process.start()
             process.join()
             select_conn.close()
-
-            m.info('Process %s' % pid)
 
 
     # @m.timing
@@ -175,14 +174,16 @@ class PostgreSQLCommon():
             rows_count = cur.rowcount
             self.conn.commit()
             cur.close()
-            return rows_count
+        return rows_count
 
     def bulk_copy(self, file_source, target_table, columns=None):
         """ Massive insertion """
-        with self.conn.cursor(cursor_factory=DictCursor) as cur:
+        with self.conn.cursor() as cur:
             cur.copy_from(file_source, target_table, sep='\t', columns=columns)
+            rows_count = cur.rowcount
             self.conn.commit()
             cur.close()
+        return rows_count
 
     def close(self):
         """ Connection closing """

@@ -204,11 +204,10 @@ class GenerateTestData:
 
         try:
             with open(self.data_file, 'r') as csv_file:
-                self.database.bulk_copy(csv_file,
-                                        self.raw_full_table_name,
-                                        columns)
-                m.info('Bulk copy process into %s has been successfully executed!'
-                       % self.raw_full_table_name)
+                rows = self.database.bulk_copy(csv_file,
+                                               self.raw_full_table_name,
+                                               columns)
+                m.info('Have been added %s rows into %s' % (rows, self.raw_full_table_name))
         except psycopg2.Error as err:
             m.error('OOps! Bulk copy process FAILED! Reason: %s' % err.pgerror)
 
@@ -248,16 +247,18 @@ class GenerateTestData:
         except psycopg2.Error as err:
             m.error('Oops! Delete random rows has been FAILED. Reason: %s' % err.pgerror)
 
+    @m.timing
     def run(self, num_rows):
         """ Run the proceess """
+        m.info('START!')
         self.create_db_schema()
         self.create_folder('data')
         self.create_csv_file(num_rows)
         self.bulk_copy_to_db()
         self.random_delete_rows()
         self.random_update_rows()
+        m.info('END!')
 
-@m.timing
 def main():
     """ Data creating """
     if len(sys.argv) > 1:
@@ -266,9 +267,7 @@ def main():
         num_rows = 100000
 
     gtd = GenerateTestData()
-    m.info('START!')
     gtd.run(num_rows)
-    m.info('END!')
 
 if __name__ == '__main__':
     main()
