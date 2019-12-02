@@ -210,6 +210,7 @@ class GenerateTestData:
         except psycopg2.Error as err:
             m.error('OOps! Bulk copy process FAILED! Reason: %s' % err.pgerror)
 
+    @m.timing
     @m.wrapper(m.entering, m.exiting)
     def random_delete_rows(self):
         """ Random deleting some rows from the table """
@@ -227,6 +228,7 @@ class GenerateTestData:
         except psycopg2.Error as err:
             m.error('Oops! Delete random rows has been FAILED. Reason: %s' % err.pgerror)
 
+    @m.timing
     @m.wrapper(m.entering, m.exiting)
     def random_update_rows(self):
         """ Random update some rows from the table """
