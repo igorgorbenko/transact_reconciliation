@@ -7,7 +7,6 @@ import configparser
 
 from adapters.postgresql_adapter import PostgreSQLAdapter
 from adapters.csv_adapter import CsvAdapter
-
 from utils.monitoring import Monitoring
 
 

@@ -7,7 +7,6 @@ import sys
 import csv
 import configparser
 import multiprocessing as mp
-
 from random import randrange
 from random import randint, choice
 import uuid
