@@ -21,6 +21,7 @@ from utils.monitoring import Monitoring
 
 m = Monitoring('data_generating')
 
+
 class TestDataCreator:
     """ The main class for the data generating """
     def __init__(self, num_rows, config, data_file):
@@ -94,7 +95,6 @@ class TestDataCreator:
 
         self.write_in_file(new_rows, chunk_start, chunk_end)
 
-
     @staticmethod
     def chunks(array, start, num):
         """Yield successive n-sized chunks from array"""
@@ -129,11 +129,11 @@ class TestDataCreator:
         for chunk_start, chunk_end in self.get_threads(0, self.num_rows):
             jobs.append(pool.apply_async(self.generate_test_data_by_chunk,
                                          (chunk_start, chunk_end)))
-        #wait for all jobs to finish
+        # wait for all jobs to finish
         for job in jobs:
             job.get()
 
-        #clean up
+        # clean up
         pool.close()
         pool.join()
 
@@ -152,7 +152,6 @@ class GenerateTestData:
                                              self.raw_table_name])
 
         self.database = PostgreSQLCommon()
-
 
     @m.wrapper(m.entering, m.exiting)
     def create_db_schema(self):
@@ -257,6 +256,7 @@ class GenerateTestData:
         self.random_delete_rows()
         self.random_update_rows()
         m.info('END!')
+
 
 def main():
     """ Data creating """

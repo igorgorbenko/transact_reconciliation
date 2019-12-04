@@ -12,6 +12,7 @@ from adapters.database_tool import PostgreSQLCommon
 
 m = Monitoring('csv_adapter')
 
+
 class CsvAdapter:
     """ Class for the reading of CSV """
     def __init__(self, table_storage, file_name):
@@ -34,12 +35,12 @@ class CsvAdapter:
 
     def get_hash(self, arr):
         """ Return the output hash-row """
-        output_str = 'csv_adapter\t' + \
-                        arr[0] + '\t' + \
-                        self.md5(self.md5(arr[1]) +
-                                 self.md5(arr[2]) +
-                                 self.md5(arr[3]) +
-                                 self.md5(arr[4]))
+        output_str = ('csv_adapter\t' +
+                      arr[0] + '\t' +
+                      self.md5(self.md5(arr[1]) +
+                               self.md5(arr[2]) +
+                               self.md5(arr[3]) +
+                               self.md5(arr[4])))
         return output_str
 
     def process(self, line):
@@ -87,26 +88,25 @@ class CsvAdapter:
                 else:
                     yield chunk_start, chunk_end - chunk_start
 
-
     # @m.wrapper(m.entering, m.exiting)
     @m.timing
     def run_reading(self):
         """ The main method fo the reading """
-        #init objects
+        # init objects
         pool = mp.Pool(mp.cpu_count() + 2)
         jobs = []
 
         m.info('Run csv reading...')
-        #create jobs
+        # create jobs
         for chunk_start, chunk_size in self.chunkify():
             jobs.append(pool.apply_async(self.process_wrapper,
                                          (chunk_start, chunk_size)))
 
-        #wait for all jobs to finish
+        # wait for all jobs to finish
         for job in jobs:
             job.get()
 
-        #clean up
+        # clean up
         pool.close()
         pool.join()
 

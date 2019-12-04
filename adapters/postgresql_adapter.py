@@ -59,22 +59,22 @@ class PostgreSQLAdapter:
         """ Insert hashed data from PostgreSQL """
         sql_command = sql.SQL("""
             with pre_select as (
-            	select
-            		transaction_uid,
-            		'postresql_adapter' as adapter_name,
-            		md5(
-            			coalesce(md5(account_uid::text), ' ') ||
-            			coalesce(md5(to_char(transaction_date, 'YYYY-MM-DD HH24:MI:SS')), ' ') ||
-            			coalesce(md5(type_deal::text), ' ') ||
-            			coalesce(md5(transaction_amount::text), ' ')) as hash
-            	from transaction_db_raw.transaction_log
+                select
+                    transaction_uid,
+                    'postresql_adapter' as adapter_name,
+                    md5(
+                        coalesce(md5(account_uid::text), ' ') ||
+                        coalesce(md5(to_char(transaction_date, 'YYYY-MM-DD HH24:MI:SS')), ' ') ||
+                        coalesce(md5(type_deal::text), ' ') ||
+                        coalesce(md5(transaction_amount::text), ' ')) as hash
+                from transaction_db_raw.transaction_log
             )
             insert into {0}.{1}
                 (adapter_name, transaction_uid, hash)
             select
-            	s.adapter_name,
-            	s.transaction_uid,
-            	s.hash::uuid
+                s.adapter_name,
+                s.transaction_uid,
+                s.hash::uuid
             from pre_select s;""").format(sql.Identifier(self.schema_target),
                                           sql.Identifier(self.table_storage))
 
@@ -83,7 +83,6 @@ class PostgreSQLAdapter:
             m.info('PostgreSQL simple adapter_run successfully completed')
         except psycopg2.Error as err:
             m.error('OOps! PostgreSQL simple adapter_run FAILED! Reason %s' % str(err.pgerror))
-
 
     def get_rows_count(self):
         """ Return a count of rows """
@@ -130,7 +129,7 @@ class PostgreSQLAdapter:
         m.info('Run multiprocessing read...')
         multi_run = PostgreSQLMultiThread(sql_command, self.rows_count)
 
-        #Creating database connection pool to help connection shared along process
+        # Creating database connection pool to help connection shared along process
         multi_run.create_connection_pool()
         multi_run.read_data()
 
@@ -155,13 +154,13 @@ class PostgreSQLAdapter:
 
         sql_command = sql.SQL("""
             select
-            	s1.adapter_name,
-            	count(s1.transaction_uid) as tran_count
+                s1.adapter_name,
+                count(s1.transaction_uid) as tran_count
             from {0}.{1} s1
             full join {0}.{1} s2
-            	on s2.transaction_uid = s1.transaction_uid
-            	and s2.adapter_name != s1.adapter_name
-            	and s2.hash = s1.hash
+                on s2.transaction_uid = s1.transaction_uid
+                and s2.adapter_name != s1.adapter_name
+                and s2.hash = s1.hash
             where s2.transaction_uid is null
             group by s1.adapter_name;""").format(sql.Identifier(self.schema_target),
                                                  sql.Identifier(self.table_storage))
@@ -176,12 +175,10 @@ class PostgreSQLAdapter:
             for row in rows:
                 print('\t', end='')
                 print('{:20} | {:10}'.format(row[0], row[1]))
-                # print('\t'.join(map(str, row)))
             print('\t---------------------------------')
 
         except psycopg2.Error as err:
             m.error('OOps! Get_discrepancy_report FAILED! Reason: %s' % str(err.pgerror))
-
 
     @m.timing
     @m.wrapper(m.entering, m.exiting)
@@ -189,25 +186,25 @@ class PostgreSQLAdapter:
         """ Saving the reconcilied date into """
         sql_command = sql.SQL("""
             with reconcil_data as (
-            	select
-            		s1.transaction_uid
-            	from {0}.{1} s1
-            	join {0}.{1} s2
-            		on s2.transaction_uid = s1.transaction_uid
-            		and s2.adapter_name != s1.adapter_name
-            	where s2.hash = s1.hash
-            		and s1.adapter_name = 'postresql_adapter'
+                select
+                    s1.transaction_uid
+                from {0}.{1} s1
+                join {0}.{1} s2
+                    on s2.transaction_uid = s1.transaction_uid
+                    and s2.adapter_name != s1.adapter_name
+                where s2.hash = s1.hash
+                    and s1.adapter_name = 'postresql_adapter'
             )
             insert into transaction_db_clean.transaction_log
             select
-            	t.transaction_uid,
-            	t.account_uid,
-            	t.transaction_date,
-            	t.type_deal,
-            	t.transaction_amount
+                t.transaction_uid,
+                t.account_uid,
+                t.transaction_date,
+                t.type_deal,
+                t.transaction_amount
             from transaction_db_raw.transaction_log t
             join reconcil_data r
-            	on t.transaction_uid = r.transaction_uid
+                on t.transaction_uid = r.transaction_uid
             where not exists
                 (
                     select 1

@@ -42,7 +42,7 @@ class PostgreSQLMultiThread:
     def create_connection_pool(self):
         """ Create the thread safe threaded postgres connection pool"""
 
-        max_conn = self.pid_max#self._select_conn_count
+        max_conn = self.pid_max
         min_conn = max_conn / 2
 
         # creating separate connection for read and write purpose
@@ -78,8 +78,6 @@ class PostgreSQLMultiThread:
         processor to perform their operation using threads
         Here we calculate the pardition value to help threading to read data from database
         """
-        # pid_max = self.total_records // 100000
-
         threads_array = self.get_threads(0,
                                          self.total_records,
                                          self.pid_max)
@@ -91,7 +89,7 @@ class PostgreSQLMultiThread:
             select_conn = self._select_conn_pool.getconn()
             select_conn.autocommit = 1
 
-            #Creating 10 process to perform the operation
+            # Creating 10 process to perform the operation
             process = Process(target=self.process_data,
                               args=(self.data_queque,
                                     pid,
@@ -103,7 +101,6 @@ class PostgreSQLMultiThread:
             process.start()
             process.join()
             select_conn.close()
-
 
     # @m.timing
     def process_data(self, queue, pid,
