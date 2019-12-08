@@ -3,11 +3,11 @@
 """ The main reconciliation process module"""
 
 import time
-import configparser
 
 from adapters.postgresql_adapter import PostgreSQLAdapter
 from adapters.csv_adapter import CsvAdapter
 from utils.monitoring import Monitoring
+from utils.config_reader import ConfigReader
 
 
 m = Monitoring('reconciliation_main')
@@ -17,15 +17,18 @@ class Reconciliator:
     """ Reconciliation executor """
     def __init__(self):
         # Unique table name for the parallel processing
-        self.config = configparser.ConfigParser()
-        self.config.read('./conf/db.ini')
+        self.conf_reader = ConfigReader('./conf/db.ini')
 
         self.storage_table = 'storage_' + str(int(time.time()))
-        self.psa = PostgreSQLAdapter(self.storage_table,
-                                     self.config.get('POSTGRESQL', 'transaction_db_raw'),
-                                     self.config.get('POSTGRESQL', 'reconciliation_db'))
-        self.csv = CsvAdapter(self.storage_table,
-                              self.config.get('CSV', 'file_name_raw'))
+        self.psa = PostgreSQLAdapter(storage_table=self.storage_table,
+                                     schema_raw=self.conf_reader.get_attr('transaction_db_raw'),
+                                     schema_target=self.conf_reader.get_attr('reconciliation_db'),
+                                     schema_db_clean=self.conf_reader.get_attr('transaction_db_clean'))
+
+        self.csv = CsvAdapter(storage_table=self.storage_table,
+                              schema_target=self.conf_reader.get_attr('reconciliation_db'),
+                              file_name_raw=self.conf_reader.get_attr('file_name_raw'),
+                              file_name_hash=self.conf_reader.get_attr('file_name_hash'))
 
     def storage_preparing(self):
         """ Database preparing """

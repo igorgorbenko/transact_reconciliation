@@ -3,7 +3,6 @@
 """ Working with CSV file """
 
 import os
-import configparser
 import multiprocessing as mp
 import hashlib
 
@@ -15,17 +14,15 @@ m = Monitoring('csv_adapter')
 
 class CsvAdapter:
     """ Class for the reading of CSV """
-    def __init__(self, table_storage, file_name):
-        self.file_name = file_name
-        self.file_end = os.path.getsize(self.file_name)
+    def __init__(self, **kwargs):
+        self.file_name_raw = kwargs['file_name_raw']
+        self.file_end = os.path.getsize(self.file_name_raw)
         self.file_end_mb = self.get_size_in_mb(self.file_end)
 
-        self.config = configparser.ConfigParser()
-        self.config.read('./conf/db.ini')
-        self.recon_db = self.config.get('POSTGRESQL', 'reconciliation_db')
-        self.file_name_hash = self.config.get('CSV', 'file_name_hash')
+        self.schema_target = kwargs['schema_target']
+        self.file_name_hash = kwargs['file_name_hash']
 
-        self.table_storage = '.'.join([self.recon_db, table_storage])
+        self.storage_table = '.'.join([self.schema_target, kwargs['storage_table']])
         self.chunk_counter = 0
 
     @staticmethod
@@ -59,7 +56,7 @@ class CsvAdapter:
     @m.timing
     def process_wrapper(self, chunk_start, chunk_size):
         """ Read a particular chunk """
-        with open(self.file_name, newline='\n') as file:
+        with open(self.file_name_raw, newline='\n') as file:
             file.seek(chunk_start)
             lines = file.read(chunk_size).splitlines()
             for line in lines:
@@ -73,7 +70,7 @@ class CsvAdapter:
 
     def chunkify(self, size=1024*1024*5):
         """ Return a new chunk """
-        with open(self.file_name, 'rb') as file:
+        with open(self.file_name_raw, 'rb') as file:
             chunk_end = file.tell()
             while True:
                 chunk_start = chunk_end
@@ -120,7 +117,7 @@ class CsvAdapter:
 
         try:
             file = open(self.file_name_hash)
-            database.bulk_copy(file, self.table_storage)
+            database.bulk_copy(file, self.storage_table)
 
             m.info('Bulk insert from %s has been successfully completed!'
                    % self.file_name_hash)

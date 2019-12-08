@@ -13,11 +13,11 @@ m = Monitoring('postgresql_adapter')
 
 class PostgreSQLAdapter:
     """ The adapter for PostgreSQL """
-    def __init__(self, table_storage,
-                 schema_raw, schema_target):
-        self.table_storage = table_storage
-        self.schema_raw = schema_raw
-        self.schema_target = schema_target
+    def __init__(self, **kwargs):
+        self.storage_table = kwargs['storage_table']
+        self.schema_raw = kwargs['schema_raw']
+        self.schema_target = kwargs['schema_target']
+        self.schema_db_clean = kwargs['schema_db_clean']
         self.rows_count = 0
         self.database = PostgreSQLCommon()
 
@@ -33,12 +33,12 @@ class PostgreSQLAdapter:
             );
             create index {3} on {0}.{1} (hash);
             """).format(sql.Identifier(self.schema_target),
-                        sql.Identifier(self.table_storage),
-                        sql.Identifier('_'.join(['pk', self.table_storage])),
-                        sql.Identifier('_'.join([self.table_storage, 'hash_idx'])))
+                        sql.Identifier(self.storage_table),
+                        sql.Identifier('_'.join(['pk', self.storage_table])),
+                        sql.Identifier('_'.join([self.storage_table, 'hash_idx'])))
         try:
             self.database.execute(sql_command)
-            m.info('Table %s has been created!' % self.table_storage)
+            m.info('Table %s has been created!' % self.storage_table)
         except psycopg2.Error as err:
             m.error('OOps! Table creating for Storage FAILED! Reason: %s' % str(err.pgerror))
 
@@ -47,13 +47,13 @@ class PostgreSQLAdapter:
         sql_command = sql.SQL("""
             drop table if exists {0}.{1};
             """).format(sql.Identifier(self.schema_target),
-                        sql.Identifier(self.table_storage))
+                        sql.Identifier(self.storage_table))
         try:
             self.database.execute(sql_command)
-            m.info('Table %s has been droped!' % self.table_storage)
+            m.info('Table %s has been droped!' % self.storage_table)
         except psycopg2.Error as err:
             m.error('OOps! Table droping for Storage %s FAILED! Reason: %s'
-                    % (self.table_storage, str(err.pgerror)))
+                    % (self.storage_table, str(err.pgerror)))
 
     def adapter_simple_run(self):
         """ Insert hashed data from PostgreSQL """
@@ -67,16 +67,17 @@ class PostgreSQLAdapter:
                         coalesce(md5(to_char(transaction_date, 'YYYY-MM-DD HH24:MI:SS')), ' ') ||
                         coalesce(md5(type_deal::text), ' ') ||
                         coalesce(md5(transaction_amount::text), ' ')) as hash
-                from transaction_db_raw.transaction_log
+                from {0}.transaction_log
             )
-            insert into {0}.{1}
+            insert into {1}.{2}
                 (adapter_name, transaction_uid, hash)
             select
                 s.adapter_name,
                 s.transaction_uid,
                 s.hash::uuid
-            from pre_select s;""").format(sql.Identifier(self.schema_target),
-                                          sql.Identifier(self.table_storage))
+            from pre_select s;""").format(sql.Identifier(self.schema_raw),
+                                          sql.Identifier(self.schema_target),
+                                          sql.Identifier(self.storage_table))
 
         try:
             self.database.execute(sql_command)
@@ -114,17 +115,18 @@ class PostgreSQLAdapter:
                             'YYYY-MM-DD HH24:MI:SS')), ' ') ||
                         coalesce(md5(type_deal::text), ' ') ||
                         coalesce(md5(transaction_amount::text), ' ')) as hash
-                from transaction_db_raw.transaction_log
+                from {0}.transaction_log
                 where id_num_row > %s and id_num_row <= %s
             )
-            insert into {0}.{1}
+            insert into {1}.{2}
                 (adapter_name, transaction_uid, hash)
             select
                 s.adapter_name,
                 s.transaction_uid,
                 s.hash::uuid
-            from pre_select s;""").format(sql.Identifier(self.schema_target),
-                                          sql.Identifier(self.table_storage))
+            from pre_select s;""").format(sql.Identifier(self.schema_raw),
+                                          sql.Identifier(self.schema_target),
+                                          sql.Identifier(self.storage_table))
 
         m.info('Run multiprocessing read...')
         multi_run = PostgreSQLMultiThread(sql_command, self.rows_count)
@@ -163,7 +165,7 @@ class PostgreSQLAdapter:
                 and s2.hash = s1.hash
             where s2.transaction_uid is null
             group by s1.adapter_name;""").format(sql.Identifier(self.schema_target),
-                                                 sql.Identifier(self.table_storage))
+                                                 sql.Identifier(self.storage_table))
 
         try:
             rows = self.database.query(sql_command)
@@ -195,24 +197,26 @@ class PostgreSQLAdapter:
                 where s2.hash = s1.hash
                     and s1.adapter_name = 'postresql_adapter'
             )
-            insert into transaction_db_clean.transaction_log
+            insert into {2}.transaction_log
             select
                 t.transaction_uid,
                 t.account_uid,
                 t.transaction_date,
                 t.type_deal,
                 t.transaction_amount
-            from transaction_db_raw.transaction_log t
+            from {3}.transaction_log t
             join reconcil_data r
                 on t.transaction_uid = r.transaction_uid
             where not exists
                 (
                     select 1
-                    from transaction_db_clean.transaction_log tl
+                    from {2}.transaction_log tl
                     where tl.transaction_uid = t.transaction_uid
                 )
             """).format(sql.Identifier(self.schema_target),
-                        sql.Identifier(self.table_storage))
+                        sql.Identifier(self.storage_table),
+                        sql.Identifier(self.schema_db_clean),
+                        sql.Identifier(self.schema_raw))
 
         try:
             self.database.execute(sql_command)

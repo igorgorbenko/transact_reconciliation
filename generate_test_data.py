@@ -5,7 +5,6 @@
 import os
 import sys
 import csv
-import configparser
 import multiprocessing as mp
 from random import randrange
 from random import randint, choice
@@ -17,6 +16,7 @@ from psycopg2 import sql
 
 from adapters.database_tool import PostgreSQLCommon
 from utils.monitoring import Monitoring
+from utils.config_reader import ConfigReader
 
 
 m = Monitoring('data_generating')
@@ -24,16 +24,16 @@ m = Monitoring('data_generating')
 
 class TestDataCreator:
     """ The main class for the data generating """
-    def __init__(self, num_rows, config, data_file):
+    def __init__(self, num_rows, conf_reader, data_file):
         self.num_rows = num_rows
-        self.config = config
+        self.conf_reader = conf_reader
         self.data_file = data_file
         if os.path.exists(self.data_file):
             os.remove(self.data_file)
 
-        self.date_in = dt.datetime.strptime(self.config.get('MAIN', 'initial_date'),
+        self.date_in = dt.datetime.strptime(self.conf_reader.get_attr('initial_date'),
                                             '%Y-%m-%d')
-        self.random_accounts_count = int(self.config.get('MAIN', 'random_accounts'))
+        self.random_accounts_count = int(self.conf_reader.get_attr('random_accounts'))
         self.list_acc = self.get_accounts_num()     # Ten random accounts
 
         self.list_type_deal = ['commision', 'deal']
@@ -142,11 +142,10 @@ class GenerateTestData:
     """ The main class for creating a dummy data """
 
     def __init__(self):
-        self.config = configparser.ConfigParser()
-        self.config.read('./conf/db.ini')
+        self.conf_reader = ConfigReader('./conf/db.ini')
 
-        self.data_file = self.config.get('CSV', 'file_name_raw')
-        self.schema_raw = self.config.get('POSTGRESQL', 'transaction_db_raw')
+        self.data_file = self.conf_reader.get_attr('file_name_raw')
+        self.schema_raw = self.conf_reader.get_attr('transaction_db_raw')
         self.raw_table_name = 'transaction_log'
         self.raw_full_table_name = '.'.join([self.schema_raw,
                                              self.raw_table_name])
@@ -185,7 +184,7 @@ class GenerateTestData:
     @m.wrapper(m.entering, m.exiting)
     def create_csv_file(self, num_rows, ):
         """ Create csv file """
-        csv_creator = TestDataCreator(num_rows, self.config, self.data_file)
+        csv_creator = TestDataCreator(num_rows, self.conf_reader, self.data_file)
         csv_creator.run_csv_writing()
 
     @m.timing
