@@ -30,9 +30,11 @@ class PostgreSQLMultiThread:
 
     data_queque = Queue()  # reader reads data from queue
 
-    def __init__(self, str_sql, total_records):
+    def __init__(self, str_sql,
+                 total_records, max_id_num_row):
         self.str_sql = str_sql
         self.total_records = total_records
+        self.max_id_num_row = max_id_num_row
 
         m.info('Total rows for processing %s' % self.total_records)
 
@@ -71,18 +73,17 @@ class PostgreSQLMultiThread:
 
         return threads_arr
 
-    # @m.timing
+
     def read_data(self):
         """
         Read the data from the postgres and shared those records with each
         processor to perform their operation using threads
-        Here we calculate the pardition value to help threading to read data from database
         """
         threads_array = self.get_threads(0,
-                                         self.total_records,
+                                         self.max_id_num_row,
                                          self.pid_max)
 
-        for pid in range(1, self.pid_max + 1):
+        for pid in range(1, len(threads_array) + 1):
             m.info('Process %s' % pid)
 
             # Getting connection from the connection pool
@@ -102,7 +103,6 @@ class PostgreSQLMultiThread:
             process.join()
             select_conn.close()
 
-    # @m.timing
     def process_data(self, queue, pid,
                      start_index, end_index,
                      select_conn):
@@ -115,7 +115,7 @@ class PostgreSQLMultiThread:
                                          end_index,
                                          10)
 
-        for tid in range(1, 11):
+        for tid in range(1, len(threads_array) + 1):
             worker = threading.Thread(target=self.process_thread,
                                       args=(queue,
                                             pid,

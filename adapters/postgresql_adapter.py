@@ -19,6 +19,7 @@ class PostgreSQLAdapter:
         self.schema_target = kwargs['schema_target']
         self.schema_db_clean = kwargs['schema_db_clean']
         self.rows_count = 0
+        self.max_id_num_row = 0
         self.database = PostgreSQLCommon()
 
     def storage_create(self):
@@ -88,19 +89,21 @@ class PostgreSQLAdapter:
     def get_rows_count(self):
         """ Return a count of rows """
         rows_count = 0
+        max_id_num_row = 0
 
         sql_command = """
-            select count(*)
+            select count(*), max(id_num_row)
             from transaction_db_raw.transaction_log;"""
 
         try:
             rows = self.database.query_one(sql_command)
             rows_count = rows[0]
+            max_id_num_row = rows[1]
         except psycopg2.Error as err:
             m.error('OOps! PostgreSQLAdapter.adapter_run FAILED! Reason: %s, sql command: %s'
                     % (str(err.pgerror), sql_command))
 
-        return rows_count
+        return rows_count, max_id_num_row
 
     def adapter_thread_run(self):
         """ Adapter running in multi-threads option """
@@ -129,7 +132,7 @@ class PostgreSQLAdapter:
                                           sql.Identifier(self.storage_table))
 
         m.info('Run multiprocessing read...')
-        multi_run = PostgreSQLMultiThread(sql_command, self.rows_count)
+        multi_run = PostgreSQLMultiThread(sql_command, self.rows_count, self.max_id_num_row)
 
         # Creating database connection pool to help connection shared along process
         multi_run.create_connection_pool()
@@ -142,7 +145,7 @@ class PostgreSQLAdapter:
     def adapter_run_main(self):
         """ Depending on the volume of input data,
             the necessary handler is launched """
-        self.rows_count = self.get_rows_count()
+        self.rows_count, self.max_id_num_row = self.get_rows_count()
 
         if self.rows_count < 100000:
             # Simple processing

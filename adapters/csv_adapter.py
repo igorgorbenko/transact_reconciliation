@@ -85,10 +85,9 @@ class CsvAdapter:
                 else:
                     yield chunk_start, chunk_end - chunk_start
 
-    # @m.wrapper(m.entering, m.exiting)
     @m.timing
     def run_reading(self):
-        """ The main method fo the reading """
+        """ The main method for the reading """
         # init objects
         pool = mp.Pool(mp.cpu_count() + 2)
         jobs = []

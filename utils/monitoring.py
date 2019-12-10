@@ -76,7 +76,7 @@ class Monitoring:
             end = time()
             time_elapsed = round(end - start, 4)
 
-            print('\tfunc: {:^15}. Elapsed time: {} sec'.format(func.__name__, time_elapsed))
+            print('func: {:^15}. Elapsed time: {} sec'.format(func.__name__, time_elapsed))
 
             return result
         return wrapper
