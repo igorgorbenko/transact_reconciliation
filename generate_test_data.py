@@ -123,7 +123,7 @@ class TestDataCreator:
 
     def run_csv_writing(self):
         """ Writing the test data into csv file """
-        pool = mp.Pool(mp.cpu_count() + 2)
+        pool = mp.Pool(mp.cpu_count())
         jobs = []
 
         for chunk_start, chunk_end in self.divide_into_chunks(0, self.num_rows):
