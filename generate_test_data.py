@@ -102,8 +102,8 @@ class TestDataCreator:
             yield array[i:i + num]
 
     @classmethod
-    def get_threads(cls, start=0,
-                    num=1000, div=100):
+    def divide_into_chunks(cls, start=0,
+                           num=1000, div=100):
         """ Split input value into equal chunks """
         threads_arr = []
 
@@ -126,7 +126,7 @@ class TestDataCreator:
         pool = mp.Pool(mp.cpu_count() + 2)
         jobs = []
 
-        for chunk_start, chunk_end in self.get_threads(0, self.num_rows):
+        for chunk_start, chunk_end in self.divide_into_chunks(0, self.num_rows):
             jobs.append(pool.apply_async(self.generate_test_data_by_chunk,
                                          (chunk_start, chunk_end)))
         # wait for all jobs to finish
